@@ -1,0 +1,19 @@
+{
+  "project": "ClawScape",
+  "description": "RuneScape-like MMORPG built from scratch in Three.js + Node.js",
+  "created": "2026-02-01",
+  "current_phase": "0",
+  "tasks": {
+    "P0.1.1": { "status": "available", "blocked_by": [], "owner": null },
+    "P0.1.2": { "status": "available", "blocked_by": ["P0.1.1"], "owner": null },
+    "P0.1.3": { "status": "available", "blocked_by": ["P0.1.1"], "owner": null },
+    "P0.1.4": { "status": "available", "blocked_by": ["P0.1.1"], "owner": null },
+    "P0.1.5": { "status": "available", "blocked_by": ["P0.1.1"], "owner": null },
+    "P0.1.6": { "status": "available", "blocked_by": ["P0.1.4"], "owner": null },
+    "P0.1.7": { "status": "available", "blocked_by": [], "owner": null },
+    "P0.1.8": { "status": "available", "blocked_by": [], "owner": null },
+    "P0.1.9": { "status": "available", "blocked_by": [], "owner": null }
+  },
+  "completed_log": [],
+  "notes": "Phase 0 tasks can mostly be done in parallel. Start with P0.1.1 (monorepo structure) first."
+}
