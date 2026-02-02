@@ -10,46 +10,46 @@ Reference: Lost City codebase at `C:\Users\go\lostcity-ref`
 
 ## 0.1 Project Setup
 
-- [ ] **P0.1.1** Initialize monorepo structure (client/, server/, shared/)
-- [ ] **P0.1.2** Set up TypeScript configuration for all packages
+- [x] **P0.1.1** Initialize monorepo structure (client/, server/, shared/)
+- [x] **P0.1.2** Set up TypeScript configuration for all packages
 - [ ] **P0.1.3** Set up ESLint + Prettier
-- [ ] **P0.1.4** Set up build scripts (esbuild or vite)
-- [ ] **P0.1.5** Create package.json for each package
-- [ ] **P0.1.6** Set up hot reload for development
+- [x] **P0.1.4** Set up build scripts (esbuild or vite)
+- [x] **P0.1.5** Create package.json for each package
+- [x] **P0.1.6** Set up hot reload for development
 - [ ] **P0.1.7** Create basic README with setup instructions
-- [ ] **P0.1.8** Set up GitHub repository
-- [ ] **P0.1.9** Create .gitignore
+- [x] **P0.1.8** Set up GitHub repository
+- [x] **P0.1.9** Create .gitignore
 
 ## 0.2 Client Foundation (Three.js)
 
-- [ ] **P0.2.1** Install Three.js and dependencies
-- [ ] **P0.2.2** Create basic HTML entry point
-- [ ] **P0.2.3** Initialize Three.js scene, camera, renderer
-- [ ] **P0.2.4** Create game loop (requestAnimationFrame)
-- [ ] **P0.2.5** Add window resize handling
-- [ ] **P0.2.6** Create basic ground plane
+- [x] **P0.2.1** Install Three.js and dependencies
+- [x] **P0.2.2** Create basic HTML entry point
+- [x] **P0.2.3** Initialize Three.js scene, camera, renderer
+- [x] **P0.2.4** Create game loop (requestAnimationFrame)
+- [x] **P0.2.5** Add window resize handling
+- [x] **P0.2.6** Create basic ground plane
 - [ ] **P0.2.7** Add orbit controls for debugging
-- [ ] **P0.2.8** Create isometric-style camera (RS perspective)
-- [ ] **P0.2.9** Add basic lighting
+- [x] **P0.2.8** Create isometric-style camera (RS perspective)
+- [x] **P0.2.9** Add basic lighting
 
 ## 0.3 Server Foundation (Node.js)
 
-- [ ] **P0.3.1** Initialize Node.js server project
-- [ ] **P0.3.2** Set up WebSocket server (ws library)
-- [ ] **P0.3.3** Create basic connection handling
-- [ ] **P0.3.4** Create message protocol (JSON or binary)
-- [ ] **P0.3.5** Add heartbeat/ping-pong for connection health
-- [ ] **P0.3.6** Create game tick loop (600ms like RS)
+- [x] **P0.3.1** Initialize Node.js server project
+- [x] **P0.3.2** Set up WebSocket server (ws library)
+- [x] **P0.3.3** Create basic connection handling
+- [x] **P0.3.4** Create message protocol (JSON or binary)
+- [x] **P0.3.5** Add heartbeat/ping-pong for connection health
+- [x] **P0.3.6** Create game tick loop (600ms like RS)
 - [ ] **P0.3.7** Set up SQLite for development database
 - [ ] **P0.3.8** Create basic logging system
 
 ## 0.4 Shared Engine Foundation
 
-- [ ] **P0.4.1** Create shared types package
-- [ ] **P0.4.2** Define core entity interfaces (Player, NPC, Item, etc.)
-- [ ] **P0.4.3** Create coordinate system (tile-based)
-- [ ] **P0.4.4** Define network message types
-- [ ] **P0.4.5** Create shared constants (tick rate, tile size, etc.)
+- [x] **P0.4.1** Create shared types package
+- [x] **P0.4.2** Define core entity interfaces (Player, NPC, Item, etc.)
+- [x] **P0.4.3** Create coordinate system (tile-based)
+- [x] **P0.4.4** Define network message types
+- [x] **P0.4.5** Create shared constants (tick rate, tile size, etc.)
 
 ---
 
@@ -58,12 +58,12 @@ Reference: Lost City codebase at `C:\Users\go\lostcity-ref`
 ## 1.1 Player Movement
 
 ### Client
-- [ ] **P1.1.1** Create player entity class
-- [ ] **P1.1.2** Add click-to-move input handling
-- [ ] **P1.1.3** Display click marker on ground
-- [ ] **P1.1.4** Render player as placeholder cube/model
-- [ ] **P1.1.5** Smooth movement interpolation
-- [ ] **P1.1.6** Camera follow player
+- [x] **P1.1.1** Create player entity class
+- [x] **P1.1.2** Add click-to-move input handling
+- [x] **P1.1.3** Display click marker on ground
+- [x] **P1.1.4** Render player as placeholder cube/model
+- [x] **P1.1.5** Smooth movement interpolation
+- [x] **P1.1.6** Camera follow player
 
 ### Server
 - [ ] **P1.1.7** Handle movement requests
