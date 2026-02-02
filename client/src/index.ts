@@ -45,6 +45,14 @@ class Game {
   private clickMarker: THREE.Mesh;
   private statusText: HTMLDivElement;
 
+  // Camera
+  private cameraAngle: number = 0; // 0, 90, 180, 270 degrees
+  private cameraZoom: number = 800;
+  private targetCameraAngle: number = 0;
+  private targetCameraZoom: number = 800;
+  private readonly MIN_ZOOM = 400;
+  private readonly MAX_ZOOM = 1500;
+
   constructor() {
     // Scene
     this.scene = new THREE.Scene();
@@ -79,6 +87,7 @@ class Game {
     // Events
     window.addEventListener('resize', () => this.onResize());
     canvas.addEventListener('click', (e) => this.onClick(e));
+    canvas.addEventListener('wheel', (e) => this.onWheel(e));
     window.addEventListener('keydown', (e) => this.onKeyDown(e));
     window.addEventListener('keyup', (e) => this.onKeyUp(e));
 
@@ -113,7 +122,11 @@ class Game {
     this.statusText.innerHTML = `
       ${this.connected ? '🟢 Connected' : '🔴 Disconnected'}<br>
       Player ID: ${this.playerId}<br>
-      Players online: ${playerCount}
+      Players online: ${playerCount}<br>
+      <br>
+      <small>Q/E or ←→: Rotate camera</small><br>
+      <small>Scroll or ↑↓: Zoom</small><br>
+      <small>SHIFT: Run</small>
     `;
   }
 
@@ -367,12 +380,35 @@ class Game {
     if (event.key === 'Shift') {
       this.isRunning = true;
     }
+    // Camera rotation - arrow keys or Q/E
+    if (event.key === 'ArrowLeft' || event.key === 'q' || event.key === 'Q') {
+      this.targetCameraAngle += 90;
+    }
+    if (event.key === 'ArrowRight' || event.key === 'e' || event.key === 'E') {
+      this.targetCameraAngle -= 90;
+    }
+    // Camera zoom - arrow up/down or +/-
+    if (event.key === 'ArrowUp' || event.key === '=' || event.key === '+') {
+      this.targetCameraZoom = Math.max(this.MIN_ZOOM, this.targetCameraZoom - 100);
+    }
+    if (event.key === 'ArrowDown' || event.key === '-' || event.key === '_') {
+      this.targetCameraZoom = Math.min(this.MAX_ZOOM, this.targetCameraZoom + 100);
+    }
   }
 
   private onKeyUp(event: KeyboardEvent): void {
     if (event.key === 'Shift') {
       this.isRunning = false;
     }
+  }
+
+  private onWheel(event: WheelEvent): void {
+    event.preventDefault();
+    const zoomDelta = event.deltaY > 0 ? 100 : -100;
+    this.targetCameraZoom = Math.max(
+      this.MIN_ZOOM,
+      Math.min(this.MAX_ZOOM, this.targetCameraZoom + zoomDelta)
+    );
   }
 
   private onResize(): void {
@@ -452,7 +488,21 @@ class Game {
       this.clickMarker.rotation.z += delta * 2;
     }
 
-    const cameraOffset = new THREE.Vector3(0, 800, 800);
+    // Smooth camera rotation
+    const angleDiff = this.targetCameraAngle - this.cameraAngle;
+    this.cameraAngle += angleDiff * delta * 8;
+
+    // Smooth camera zoom
+    const zoomDiff = this.targetCameraZoom - this.cameraZoom;
+    this.cameraZoom += zoomDiff * delta * 8;
+
+    // Calculate camera position based on angle and zoom
+    const angleRad = (this.cameraAngle * Math.PI) / 180;
+    const cameraOffset = new THREE.Vector3(
+      Math.sin(angleRad) * this.cameraZoom,
+      this.cameraZoom,
+      Math.cos(angleRad) * this.cameraZoom
+    );
     this.camera.position.copy(this.player.position).add(cameraOffset);
     this.camera.lookAt(this.player.position);
 

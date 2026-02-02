@@ -98,10 +98,10 @@ Reference: Lost City codebase at `C:\Users\go\lostcity-ref`
 
 ## 1.4 Camera System
 
-- [ ] **P1.4.1** RS-style isometric camera angle
-- [ ] **P1.4.2** Camera rotation (compass directions)
-- [ ] **P1.4.3** Zoom in/out
-- [ ] **P1.4.4** Smooth camera transitions
+- [x] **P1.4.1** RS-style isometric camera angle
+- [x] **P1.4.2** Camera rotation (compass directions)
+- [x] **P1.4.3** Zoom in/out
+- [x] **P1.4.4** Smooth camera transitions
 - [ ] **P1.4.5** Camera collision (don't clip through walls)
 
 ---
