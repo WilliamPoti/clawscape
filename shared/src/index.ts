@@ -1,8 +1,11 @@
 // ClawScape Shared Types & Constants
 
+// Re-export map system
+export * from './map.js';
+export * from './demoMap.js';
+
 // Game constants
 export const TICK_RATE = 600; // ms per game tick (RS standard)
-export const TILE_SIZE = 128; // world units per tile
 
 // Coordinate system
 export interface Position {

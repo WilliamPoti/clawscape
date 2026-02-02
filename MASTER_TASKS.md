@@ -66,14 +66,14 @@ Reference: Lost City codebase at `C:\Users\go\lostcity-ref`
 - [x] **P1.1.6** Camera follow player
 
 ### Server
-- [ ] **P1.1.7** Handle movement requests
+- [x] **P1.1.7** Handle movement requests
 - [ ] **P1.1.8** Validate movement (speed, distance)
-- [ ] **P1.1.9** Broadcast position updates to nearby players
-- [ ] **P1.1.10** Implement basic pathfinding (A*)
+- [x] **P1.1.9** Broadcast position updates to nearby players
+- [x] **P1.1.10** Implement basic pathfinding (A*)
 
 ### Shared
 - [ ] **P1.1.11** Movement validation logic
-- [ ] **P1.1.12** Pathfinding algorithm
+- [x] **P1.1.12** Pathfinding algorithm
 
 ## 1.2 Multiplayer Sync
 
@@ -87,13 +87,13 @@ Reference: Lost City codebase at `C:\Users\go\lostcity-ref`
 
 ## 1.3 World/Map System
 
-- [ ] **P1.3.1** Define tile format (height, texture, flags)
-- [ ] **P1.3.2** Create map chunk system
+- [x] **P1.3.1** Define tile format (height, texture, flags)
+- [x] **P1.3.2** Create map chunk system
 - [ ] **P1.3.3** Load/save map data
-- [ ] **P1.3.4** Render terrain tiles
-- [ ] **P1.3.5** Collision map (walkable/blocked)
+- [x] **P1.3.4** Render terrain tiles
+- [x] **P1.3.5** Collision map (walkable/blocked)
 - [ ] **P1.3.6** Multi-level support (bridges, buildings)
-- [ ] **P1.3.7** Chunk loading/unloading based on player position
+- [x] **P1.3.7** Chunk loading/unloading based on player position
 - [ ] **P1.3.8** Basic map editor tool
 
 ## 1.4 Camera System

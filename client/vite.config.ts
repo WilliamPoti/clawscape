@@ -8,7 +8,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@clawscape/shared': path.resolve(__dirname, '../shared/src/index.ts')
+      '@clawscape/shared': path.resolve(__dirname, '../shared/src')
     }
   }
 });

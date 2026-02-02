@@ -1,13 +1,33 @@
 import * as THREE from 'three';
-import { TILE_SIZE, PlayerUpdate, NetworkMessage } from '@clawscape/shared';
+import {
+  TILE_SIZE,
+  CHUNK_SIZE,
+  TileTexture,
+  TILE_BLOCKED,
+  WorldMap,
+  PlayerUpdate,
+  NetworkMessage
+} from '@clawscape/shared';
 
 // ============================================
-// ClawScape Client - Phase 1: Multiplayer
+// ClawScape Client - Phase 1: World Map System
 // ============================================
 
 const WALK_SPEED = 2.5;
 const RUN_SPEED = 5;
 const SERVER_URL = 'ws://localhost:3000';
+const RENDER_DISTANCE = 2; // chunks
+
+// Tile colors
+const TILE_COLORS: Record<TileTexture, number> = {
+  [TileTexture.GRASS_LIGHT]: 0x4a7c4e,
+  [TileTexture.GRASS_DARK]: 0x3d6b40,
+  [TileTexture.DIRT]: 0x8b6914,
+  [TileTexture.STONE]: 0x707070,
+  [TileTexture.WATER]: 0x3498db,
+  [TileTexture.SAND]: 0xc2b280,
+  [TileTexture.WOOD]: 0x8b4513,
+};
 
 interface TilePosition {
   x: number;
@@ -21,11 +41,20 @@ interface OtherPlayer {
   username: string;
 }
 
+interface TileMesh {
+  mesh: THREE.Mesh;
+  obstacle?: THREE.Mesh;
+}
+
 class Game {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
   private clock: THREE.Clock;
+
+  // World map
+  private worldMap: WorldMap;
+  private loadedTiles: Map<string, TileMesh> = new Map();
 
   // Network
   private socket: WebSocket | null = null;
@@ -43,10 +72,11 @@ class Game {
 
   // UI
   private clickMarker: THREE.Mesh;
+  private blockedMarker: THREE.Mesh;
   private statusText: HTMLDivElement;
 
   // Camera
-  private cameraAngle: number = 0; // 0, 90, 180, 270 degrees
+  private cameraAngle: number = 0;
   private cameraZoom: number = 800;
   private targetCameraAngle: number = 0;
   private targetCameraZoom: number = 800;
@@ -54,6 +84,8 @@ class Game {
   private readonly MAX_ZOOM = 1500;
 
   constructor() {
+    this.worldMap = new WorldMap();
+
     // Scene
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x87ceeb);
@@ -78,11 +110,15 @@ class Game {
     this.clock = new THREE.Clock();
 
     // Create world
-    this.createGround();
-    this.player = this.createPlayer(0xff6b6b); // Red for local player
-    this.clickMarker = this.createClickMarker();
+    this.player = this.createPlayer(0xff6b6b);
+    this.clickMarker = this.createClickMarker(0xffff00);
+    this.blockedMarker = this.createClickMarker(0xff0000);
+    this.blockedMarker.visible = false;
     this.setupLighting();
     this.statusText = this.createStatusUI();
+
+    // Initial tile load
+    this.updateLoadedTiles();
 
     // Events
     window.addEventListener('resize', () => this.onResize());
@@ -96,7 +132,72 @@ class Game {
 
     // Start
     this.animate();
-    console.log('ClawScape initialized');
+    console.log('ClawScape initialized - World Map System');
+  }
+
+  private getTileKey(x: number, z: number): string {
+    return `${x},${z}`;
+  }
+
+  private updateLoadedTiles(): void {
+    const playerTileX = Math.floor(this.player.position.x / TILE_SIZE);
+    const playerTileZ = Math.floor(this.player.position.z / TILE_SIZE);
+    const radius = RENDER_DISTANCE * CHUNK_SIZE;
+
+    // Load tiles around player
+    for (let z = playerTileZ - radius; z <= playerTileZ + radius; z++) {
+      for (let x = playerTileX - radius; x <= playerTileX + radius; x++) {
+        const key = this.getTileKey(x, z);
+        if (!this.loadedTiles.has(key)) {
+          this.loadTile(x, z);
+        }
+      }
+    }
+
+    // Unload distant tiles
+    for (const [key, tileMesh] of this.loadedTiles) {
+      const [tx, tz] = key.split(',').map(Number);
+      if (
+        Math.abs(tx - playerTileX) > radius + CHUNK_SIZE ||
+        Math.abs(tz - playerTileZ) > radius + CHUNK_SIZE
+      ) {
+        this.scene.remove(tileMesh.mesh);
+        if (tileMesh.obstacle) this.scene.remove(tileMesh.obstacle);
+        this.loadedTiles.delete(key);
+      }
+    }
+  }
+
+  private loadTile(tileX: number, tileZ: number): void {
+    const tile = this.worldMap.getTile(tileX, tileZ);
+    if (!tile) return;
+
+    const geometry = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
+    const color = TILE_COLORS[tile.texture] ?? 0xff00ff;
+    const material = new THREE.MeshStandardMaterial({ color });
+
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(tileX * TILE_SIZE, tile.height, tileZ * TILE_SIZE);
+    this.scene.add(mesh);
+
+    const tileMesh: TileMesh = { mesh };
+
+    // Add obstacle visual for blocked tiles
+    if (tile.flags & TILE_BLOCKED) {
+      if (tile.texture === TileTexture.STONE) {
+        // Rock obstacle
+        const rockGeo = new THREE.DodecahedronGeometry(40);
+        const rockMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+        const rock = new THREE.Mesh(rockGeo, rockMat);
+        rock.position.set(tileX * TILE_SIZE, tile.height + 40, tileZ * TILE_SIZE);
+        rock.rotation.set(Math.random(), Math.random(), Math.random());
+        this.scene.add(rock);
+        tileMesh.obstacle = rock;
+      }
+    }
+
+    this.loadedTiles.set(this.getTileKey(tileX, tileZ), tileMesh);
   }
 
   private createStatusUI(): HTMLDivElement {
@@ -119,14 +220,16 @@ class Game {
 
   private updateStatus(): void {
     const playerCount = this.otherPlayers.size + 1;
+    const tileX = Math.round(this.player.position.x / TILE_SIZE);
+    const tileZ = Math.round(this.player.position.z / TILE_SIZE);
     this.statusText.innerHTML = `
       ${this.connected ? '🟢 Connected' : '🔴 Disconnected'}<br>
       Player ID: ${this.playerId}<br>
       Players online: ${playerCount}<br>
+      Position: ${tileX}, ${tileZ}<br>
       <br>
-      <small>Q/E or ←→: Rotate camera</small><br>
-      <small>Scroll or ↑↓: Zoom</small><br>
-      <small>SHIFT: Run</small>
+      <small>Q/E: Rotate | Scroll: Zoom</small><br>
+      <small>SHIFT: Run | Click: Move</small>
     `;
   }
 
@@ -148,7 +251,6 @@ class Game {
       console.log('Disconnected from server');
       this.connected = false;
       this.updateStatus();
-      // Try to reconnect after 3 seconds
       setTimeout(() => this.connect(), 3000);
     };
 
@@ -210,10 +312,9 @@ class Game {
   private addOtherPlayer(id: number, position: { x: number; y: number }): void {
     if (this.otherPlayers.has(id)) return;
 
-    const mesh = this.createPlayer(0x6b9fff); // Blue for other players
+    const mesh = this.createPlayer(0x6b9fff);
     mesh.position.set(position.x * TILE_SIZE, 60, position.y * TILE_SIZE);
 
-    // Add name label
     const label = this.createPlayerLabel(`Player ${id}`);
     mesh.add(label);
 
@@ -273,25 +374,6 @@ class Game {
     }
   }
 
-  private createGround(): void {
-    const gridSize = 20;
-    const geometry = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
-
-    for (let x = -gridSize / 2; x < gridSize / 2; x++) {
-      for (let z = -gridSize / 2; z < gridSize / 2; z++) {
-        const isLight = (x + z) % 2 === 0;
-        const material = new THREE.MeshStandardMaterial({
-          color: isLight ? 0x4a7c4e : 0x3d6b40,
-        });
-
-        const tile = new THREE.Mesh(geometry, material);
-        tile.rotation.x = -Math.PI / 2;
-        tile.position.set(x * TILE_SIZE, 0, z * TILE_SIZE);
-        this.scene.add(tile);
-      }
-    }
-  }
-
   private createPlayer(color: number): THREE.Mesh {
     const geometry = new THREE.BoxGeometry(60, 120, 60);
     const material = new THREE.MeshStandardMaterial({ color });
@@ -301,10 +383,10 @@ class Game {
     return player;
   }
 
-  private createClickMarker(): THREE.Mesh {
+  private createClickMarker(color: number): THREE.Mesh {
     const geometry = new THREE.RingGeometry(20, 35, 4);
     const material = new THREE.MeshBasicMaterial({
-      color: 0xffff00,
+      color,
       side: THREE.DoubleSide
     });
     const marker = new THREE.Mesh(geometry, material);
@@ -345,6 +427,17 @@ class Game {
         z: Math.round(target.z / TILE_SIZE)
       };
 
+      // Check if target is walkable
+      if (!this.worldMap.isWalkable(targetTile.x, targetTile.z)) {
+        // Show red X marker briefly
+        this.blockedMarker.position.x = targetTile.x * TILE_SIZE;
+        this.blockedMarker.position.z = targetTile.z * TILE_SIZE;
+        this.blockedMarker.visible = true;
+        this.clickMarker.visible = false;
+        setTimeout(() => { this.blockedMarker.visible = false; }, 500);
+        return;
+      }
+
       const currentTile: TilePosition = {
         x: Math.round(this.player.position.x / TILE_SIZE),
         z: Math.round(this.player.position.z / TILE_SIZE)
@@ -352,42 +445,94 @@ class Game {
 
       this.path = this.calculatePath(currentTile, targetTile);
 
-      this.clickMarker.position.x = targetTile.x * TILE_SIZE;
-      this.clickMarker.position.z = targetTile.z * TILE_SIZE;
-      this.clickMarker.visible = true;
+      if (this.path.length > 0) {
+        this.clickMarker.position.x = targetTile.x * TILE_SIZE;
+        this.clickMarker.position.z = targetTile.z * TILE_SIZE;
+        this.clickMarker.visible = true;
+        this.blockedMarker.visible = false;
+      }
     }
   }
 
   private calculatePath(from: TilePosition, to: TilePosition): TilePosition[] {
-    const path: TilePosition[] = [];
-    let x = from.x;
-    let z = from.z;
+    // Simple A* pathfinding
+    const openSet: TilePosition[] = [from];
+    const cameFrom = new Map<string, TilePosition>();
+    const gScore = new Map<string, number>();
+    const fScore = new Map<string, number>();
 
-    while (x !== to.x || z !== to.z) {
-      if (x < to.x) x++;
-      else if (x > to.x) x--;
+    const key = (p: TilePosition) => `${p.x},${p.z}`;
+    const heuristic = (a: TilePosition, b: TilePosition) =>
+      Math.abs(a.x - b.x) + Math.abs(a.z - b.z);
 
-      if (z < to.z) z++;
-      else if (z > to.z) z--;
+    gScore.set(key(from), 0);
+    fScore.set(key(from), heuristic(from, to));
 
-      path.push({ x, z });
+    while (openSet.length > 0) {
+      // Get node with lowest fScore
+      openSet.sort((a, b) => (fScore.get(key(a)) ?? Infinity) - (fScore.get(key(b)) ?? Infinity));
+      const current = openSet.shift()!;
+
+      if (current.x === to.x && current.z === to.z) {
+        // Reconstruct path
+        const path: TilePosition[] = [];
+        let node: TilePosition | undefined = current;
+        while (node && !(node.x === from.x && node.z === from.z)) {
+          path.unshift(node);
+          node = cameFrom.get(key(node));
+        }
+        return path;
+      }
+
+      // Check neighbors (8 directions)
+      const neighbors: TilePosition[] = [
+        { x: current.x - 1, z: current.z },
+        { x: current.x + 1, z: current.z },
+        { x: current.x, z: current.z - 1 },
+        { x: current.x, z: current.z + 1 },
+        { x: current.x - 1, z: current.z - 1 },
+        { x: current.x + 1, z: current.z - 1 },
+        { x: current.x - 1, z: current.z + 1 },
+        { x: current.x + 1, z: current.z + 1 },
+      ];
+
+      for (const neighbor of neighbors) {
+        if (!this.worldMap.isWalkable(neighbor.x, neighbor.z)) continue;
+
+        // Diagonal movement cost is higher
+        const isDiagonal = neighbor.x !== current.x && neighbor.z !== current.z;
+        const moveCost = isDiagonal ? 1.414 : 1;
+
+        const tentativeG = (gScore.get(key(current)) ?? Infinity) + moveCost;
+
+        if (tentativeG < (gScore.get(key(neighbor)) ?? Infinity)) {
+          cameFrom.set(key(neighbor), current);
+          gScore.set(key(neighbor), tentativeG);
+          fScore.set(key(neighbor), tentativeG + heuristic(neighbor, to));
+
+          if (!openSet.some(p => p.x === neighbor.x && p.z === neighbor.z)) {
+            openSet.push(neighbor);
+          }
+        }
+      }
+
+      // Limit search to prevent freezing
+      if (gScore.size > 1000) break;
     }
 
-    return path;
+    return []; // No path found
   }
 
   private onKeyDown(event: KeyboardEvent): void {
     if (event.key === 'Shift') {
       this.isRunning = true;
     }
-    // Camera rotation - arrow keys or Q/E
     if (event.key === 'ArrowLeft' || event.key === 'q' || event.key === 'Q') {
       this.targetCameraAngle += 90;
     }
     if (event.key === 'ArrowRight' || event.key === 'e' || event.key === 'E') {
       this.targetCameraAngle -= 90;
     }
-    // Camera zoom - arrow up/down or +/-
     if (event.key === 'ArrowUp' || event.key === '=' || event.key === '+') {
       this.targetCameraZoom = Math.max(this.MIN_ZOOM, this.targetCameraZoom - 100);
     }
@@ -438,7 +583,6 @@ class Game {
         this.player.position.z = targetZ;
         this.currentTarget = null;
 
-        // Send position to server
         this.send('player_move', {
           target: {
             x: Math.round(this.player.position.x / TILE_SIZE),
@@ -483,20 +627,23 @@ class Game {
 
     this.updateMovement(delta);
     this.updateOtherPlayers(delta);
+    this.updateLoadedTiles();
+    this.updateStatus();
 
     if (this.clickMarker.visible) {
       this.clickMarker.rotation.z += delta * 2;
     }
+    if (this.blockedMarker.visible) {
+      this.blockedMarker.rotation.z -= delta * 4;
+    }
 
-    // Smooth camera rotation
+    // Smooth camera
     const angleDiff = this.targetCameraAngle - this.cameraAngle;
     this.cameraAngle += angleDiff * delta * 8;
 
-    // Smooth camera zoom
     const zoomDiff = this.targetCameraZoom - this.cameraZoom;
     this.cameraZoom += zoomDiff * delta * 8;
 
-    // Calculate camera position based on angle and zoom
     const angleRad = (this.cameraAngle * Math.PI) / 180;
     const cameraOffset = new THREE.Vector3(
       Math.sin(angleRad) * this.cameraZoom,
