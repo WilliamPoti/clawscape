@@ -1,17 +1,24 @@
 import * as THREE from 'three';
-import { TILE_SIZE } from '@clawscape/shared';
+import { TILE_SIZE, PlayerUpdate, NetworkMessage } from '@clawscape/shared';
 
 // ============================================
-// ClawScape Client - Phase 1: Smooth Movement
+// ClawScape Client - Phase 1: Multiplayer
 // ============================================
 
-// Movement speed (tiles per second)
 const WALK_SPEED = 2.5;
 const RUN_SPEED = 5;
+const SERVER_URL = 'ws://localhost:3000';
 
 interface TilePosition {
   x: number;
   z: number;
+}
+
+interface OtherPlayer {
+  id: number;
+  mesh: THREE.Mesh;
+  targetPosition: THREE.Vector3;
+  username: string;
 }
 
 class Game {
@@ -20,14 +27,23 @@ class Game {
   private renderer: THREE.WebGLRenderer;
   private clock: THREE.Clock;
 
+  // Network
+  private socket: WebSocket | null = null;
+  private playerId: number = -1;
+  private connected: boolean = false;
+
   // Player
   private player: THREE.Mesh;
   private path: TilePosition[] = [];
   private currentTarget: TilePosition | null = null;
   private isRunning: boolean = false;
 
-  // Click marker
+  // Other players
+  private otherPlayers: Map<number, OtherPlayer> = new Map();
+
+  // UI
   private clickMarker: THREE.Mesh;
+  private statusText: HTMLDivElement;
 
   constructor() {
     // Scene
@@ -55,9 +71,10 @@ class Game {
 
     // Create world
     this.createGround();
-    this.player = this.createPlayer();
+    this.player = this.createPlayer(0xff6b6b); // Red for local player
     this.clickMarker = this.createClickMarker();
     this.setupLighting();
+    this.statusText = this.createStatusUI();
 
     // Events
     window.addEventListener('resize', () => this.onResize());
@@ -65,9 +82,182 @@ class Game {
     window.addEventListener('keydown', (e) => this.onKeyDown(e));
     window.addEventListener('keyup', (e) => this.onKeyUp(e));
 
+    // Connect to server
+    this.connect();
+
     // Start
     this.animate();
-    console.log('ClawScape initialized - Click to move, hold SHIFT to run');
+    console.log('ClawScape initialized');
+  }
+
+  private createStatusUI(): HTMLDivElement {
+    const div = document.createElement('div');
+    div.style.cssText = `
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-family: monospace;
+      font-size: 14px;
+      background: rgba(0,0,0,0.5);
+      padding: 10px;
+      border-radius: 5px;
+    `;
+    div.innerHTML = 'Connecting...';
+    document.body.appendChild(div);
+    return div;
+  }
+
+  private updateStatus(): void {
+    const playerCount = this.otherPlayers.size + 1;
+    this.statusText.innerHTML = `
+      ${this.connected ? '🟢 Connected' : '🔴 Disconnected'}<br>
+      Player ID: ${this.playerId}<br>
+      Players online: ${playerCount}
+    `;
+  }
+
+  private connect(): void {
+    this.socket = new WebSocket(SERVER_URL);
+
+    this.socket.onopen = () => {
+      console.log('Connected to server');
+      this.connected = true;
+      this.updateStatus();
+    };
+
+    this.socket.onmessage = (event) => {
+      const message: NetworkMessage = JSON.parse(event.data);
+      this.handleServerMessage(message);
+    };
+
+    this.socket.onclose = () => {
+      console.log('Disconnected from server');
+      this.connected = false;
+      this.updateStatus();
+      // Try to reconnect after 3 seconds
+      setTimeout(() => this.connect(), 3000);
+    };
+
+    this.socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+  }
+
+  private send(type: string, payload: unknown): void {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      const message: NetworkMessage = {
+        type: type as any,
+        payload,
+        timestamp: Date.now()
+      };
+      this.socket.send(JSON.stringify(message));
+    }
+  }
+
+  private handleServerMessage(message: NetworkMessage): void {
+    switch (message.type) {
+      case 'auth':
+        const authData = message.payload as { playerId: number };
+        this.playerId = authData.playerId;
+        console.log('Assigned player ID:', this.playerId);
+        this.updateStatus();
+        break;
+
+      case 'player_update':
+        const update = message.payload as PlayerUpdate;
+        if (update.id !== this.playerId) {
+          this.updateOtherPlayer(update);
+        }
+        break;
+
+      case 'player_join':
+        const joinData = message.payload as { id: number; position: { x: number; y: number } };
+        if (joinData.id !== this.playerId) {
+          this.addOtherPlayer(joinData.id, joinData.position);
+        }
+        break;
+
+      case 'player_leave':
+        const leaveData = message.payload as { id: number };
+        this.removeOtherPlayer(leaveData.id);
+        break;
+
+      case 'players_list':
+        const players = message.payload as Array<{ id: number; position: { x: number; y: number } }>;
+        for (const p of players) {
+          if (p.id !== this.playerId) {
+            this.addOtherPlayer(p.id, p.position);
+          }
+        }
+        break;
+    }
+  }
+
+  private addOtherPlayer(id: number, position: { x: number; y: number }): void {
+    if (this.otherPlayers.has(id)) return;
+
+    const mesh = this.createPlayer(0x6b9fff); // Blue for other players
+    mesh.position.set(position.x * TILE_SIZE, 60, position.y * TILE_SIZE);
+
+    // Add name label
+    const label = this.createPlayerLabel(`Player ${id}`);
+    mesh.add(label);
+
+    this.otherPlayers.set(id, {
+      id,
+      mesh,
+      targetPosition: mesh.position.clone(),
+      username: `Player ${id}`
+    });
+
+    console.log(`Player ${id} joined`);
+    this.updateStatus();
+  }
+
+  private createPlayerLabel(text: string): THREE.Sprite {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 32px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, 128, 40);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ map: texture });
+    const sprite = new THREE.Sprite(material);
+    sprite.position.y = 100;
+    sprite.scale.set(100, 25, 1);
+    return sprite;
+  }
+
+  private removeOtherPlayer(id: number): void {
+    const player = this.otherPlayers.get(id);
+    if (player) {
+      this.scene.remove(player.mesh);
+      this.otherPlayers.delete(id);
+      console.log(`Player ${id} left`);
+      this.updateStatus();
+    }
+  }
+
+  private updateOtherPlayer(update: PlayerUpdate): void {
+    let player = this.otherPlayers.get(update.id);
+
+    if (!player) {
+      this.addOtherPlayer(update.id, update.position);
+      player = this.otherPlayers.get(update.id);
+    }
+
+    if (player) {
+      player.targetPosition.set(
+        update.position.x * TILE_SIZE,
+        60,
+        update.position.y * TILE_SIZE
+      );
+    }
   }
 
   private createGround(): void {
@@ -89,9 +279,9 @@ class Game {
     }
   }
 
-  private createPlayer(): THREE.Mesh {
+  private createPlayer(color: number): THREE.Mesh {
     const geometry = new THREE.BoxGeometry(60, 120, 60);
-    const material = new THREE.MeshStandardMaterial({ color: 0xff6b6b });
+    const material = new THREE.MeshStandardMaterial({ color });
     const player = new THREE.Mesh(geometry, material);
     player.position.set(0, 60, 0);
     this.scene.add(player);
@@ -99,7 +289,6 @@ class Game {
   }
 
   private createClickMarker(): THREE.Mesh {
-    // Yellow X marker where you clicked
     const geometry = new THREE.RingGeometry(20, 35, 4);
     const material = new THREE.MeshBasicMaterial({
       color: 0xffff00,
@@ -138,39 +327,30 @@ class Game {
     raycaster.ray.intersectPlane(groundPlane, target);
 
     if (target) {
-      // Get target tile
       const targetTile: TilePosition = {
         x: Math.round(target.x / TILE_SIZE),
         z: Math.round(target.z / TILE_SIZE)
       };
 
-      // Get current tile
       const currentTile: TilePosition = {
         x: Math.round(this.player.position.x / TILE_SIZE),
         z: Math.round(this.player.position.z / TILE_SIZE)
       };
 
-      // Calculate path (simple straight line for now)
       this.path = this.calculatePath(currentTile, targetTile);
 
-      // Show click marker
       this.clickMarker.position.x = targetTile.x * TILE_SIZE;
       this.clickMarker.position.z = targetTile.z * TILE_SIZE;
       this.clickMarker.visible = true;
-
-      console.log(`Walking to tile: ${targetTile.x}, ${targetTile.z}`);
     }
   }
 
   private calculatePath(from: TilePosition, to: TilePosition): TilePosition[] {
-    // Simple line path (will replace with A* later)
     const path: TilePosition[] = [];
-
     let x = from.x;
     let z = from.z;
 
     while (x !== to.x || z !== to.z) {
-      // Move one step closer
       if (x < to.x) x++;
       else if (x > to.x) x--;
 
@@ -202,7 +382,6 @@ class Game {
   }
 
   private updateMovement(delta: number): void {
-    // Get next target from path
     if (!this.currentTarget && this.path.length > 0) {
       this.currentTarget = this.path.shift()!;
     }
@@ -219,24 +398,44 @@ class Game {
       const moveDistance = speed * delta;
 
       if (distance <= moveDistance) {
-        // Reached target tile
         this.player.position.x = targetX;
         this.player.position.z = targetZ;
         this.currentTarget = null;
 
-        // Hide marker when reached final destination
+        // Send position to server
+        this.send('player_move', {
+          target: {
+            x: Math.round(this.player.position.x / TILE_SIZE),
+            y: Math.round(this.player.position.z / TILE_SIZE),
+            level: 0
+          }
+        });
+
         if (this.path.length === 0) {
           this.clickMarker.visible = false;
         }
       } else {
-        // Move toward target
         const moveX = (dx / distance) * moveDistance;
         const moveZ = (dz / distance) * moveDistance;
         this.player.position.x += moveX;
         this.player.position.z += moveZ;
-
-        // Face movement direction
         this.player.rotation.y = Math.atan2(dx, dz);
+      }
+    }
+  }
+
+  private updateOtherPlayers(delta: number): void {
+    for (const [, player] of this.otherPlayers) {
+      const dx = player.targetPosition.x - player.mesh.position.x;
+      const dz = player.targetPosition.z - player.mesh.position.z;
+      const distance = Math.sqrt(dx * dx + dz * dz);
+
+      if (distance > 1) {
+        const speed = WALK_SPEED * TILE_SIZE;
+        const moveDistance = Math.min(speed * delta, distance);
+        player.mesh.position.x += (dx / distance) * moveDistance;
+        player.mesh.position.z += (dz / distance) * moveDistance;
+        player.mesh.rotation.y = Math.atan2(dx, dz);
       }
     }
   }
@@ -246,15 +445,13 @@ class Game {
 
     const delta = this.clock.getDelta();
 
-    // Update player movement
     this.updateMovement(delta);
+    this.updateOtherPlayers(delta);
 
-    // Rotate click marker
     if (this.clickMarker.visible) {
       this.clickMarker.rotation.z += delta * 2;
     }
 
-    // Camera follow
     const cameraOffset = new THREE.Vector3(0, 800, 800);
     this.camera.position.copy(this.player.position).add(cameraOffset);
     this.camera.lookAt(this.player.position);

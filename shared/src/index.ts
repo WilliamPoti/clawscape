@@ -22,6 +22,9 @@ export type MessageType =
   | 'auth'
   | 'player_move'
   | 'player_update'
+  | 'player_join'
+  | 'player_leave'
+  | 'players_list'
   | 'chat'
   | 'ping'
   | 'pong';

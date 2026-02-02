@@ -77,12 +77,12 @@ Reference: Lost City codebase at `C:\Users\go\lostcity-ref`
 
 ## 1.2 Multiplayer Sync
 
-- [ ] **P1.2.1** Send player position to server
-- [ ] **P1.2.2** Receive other players' positions
-- [ ] **P1.2.3** Render other players
-- [ ] **P1.2.4** Handle player join/leave
-- [ ] **P1.2.5** Interpolate other players' movement
-- [ ] **P1.2.6** Entity ID system
+- [x] **P1.2.1** Send player position to server
+- [x] **P1.2.2** Receive other players' positions
+- [x] **P1.2.3** Render other players
+- [x] **P1.2.4** Handle player join/leave
+- [x] **P1.2.5** Interpolate other players' movement
+- [x] **P1.2.6** Entity ID system
 - [ ] **P1.2.7** Interest management (only sync nearby entities)
 
 ## 1.3 World/Map System
