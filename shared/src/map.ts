@@ -53,8 +53,10 @@ export function createChunk(chunkX: number, chunkY: number): Chunk {
   for (let y = 0; y < CHUNK_SIZE; y++) {
     tiles[y] = [];
     for (let x = 0; x < CHUNK_SIZE; x++) {
-      // Checkerboard grass pattern
-      const isLight = (x + y + chunkX + chunkY) % 2 === 0;
+      // Checkerboard grass pattern using global coordinates
+      const globalX = chunkX * CHUNK_SIZE + x;
+      const globalY = chunkY * CHUNK_SIZE + y;
+      const isLight = (globalX + globalY) % 2 === 0;
       tiles[y][x] = createTile(
         isLight ? TileTexture.GRASS_LIGHT : TileTexture.GRASS_DARK
       );

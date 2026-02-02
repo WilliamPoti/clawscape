@@ -15,6 +15,16 @@ import {
 export function createDemoChunk(chunkX: number, chunkY: number): Chunk {
   const chunk = createChunk(chunkX, chunkY);
 
+  // Fix checkerboard to use global coordinates
+  for (let y = 0; y < CHUNK_SIZE; y++) {
+    for (let x = 0; x < CHUNK_SIZE; x++) {
+      const globalX = chunkX * CHUNK_SIZE + x;
+      const globalY = chunkY * CHUNK_SIZE + y;
+      const isLight = (globalX + globalY) % 2 === 0;
+      chunk.tiles[y][x].texture = isLight ? TileTexture.GRASS_LIGHT : TileTexture.GRASS_DARK;
+    }
+  }
+
   // Only add features to the center chunk (0, 0)
   if (chunkX === 0 && chunkY === 0) {
     // Add a small pond (water, blocked)
