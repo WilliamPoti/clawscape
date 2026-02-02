@@ -8,6 +8,7 @@ import {
   PlayerUpdate,
   NetworkMessage
 } from '@clawscape/shared';
+import { DemoRecorder, DemoAction, DEMO_SCRIPTS } from './demoRecorder';
 
 // ============================================
 // ClawScape Client - Phase 1: World Map System
@@ -83,6 +84,10 @@ class Game {
   private readonly MIN_ZOOM = 400;
   private readonly MAX_ZOOM = 1500;
 
+  // Demo recorder
+  private demoRecorder: DemoRecorder | null = null;
+  private demoMessage: HTMLDivElement | null = null;
+
   constructor() {
     this.worldMap = new WorldMap();
 
@@ -130,9 +135,98 @@ class Game {
     // Connect to server
     this.connect();
 
+    // Demo recorder
+    this.initDemoRecorder(canvas);
+
     // Start
     this.animate();
-    console.log('ClawScape initialized - World Map System');
+    console.log('ClawScape initialized - Press 1/2/3 to record demos');
+  }
+
+  private initDemoRecorder(canvas: HTMLCanvasElement): void {
+    this.demoRecorder = new DemoRecorder(canvas);
+    this.demoRecorder.setActionHandler((action: DemoAction) => {
+      this.handleDemoAction(action);
+    });
+  }
+
+  private handleDemoAction(action: DemoAction): void {
+    switch (action.action) {
+      case 'move':
+        const targetTile = { x: action.params.x, z: action.params.z };
+        const currentTile = {
+          x: Math.round(this.player.position.x / TILE_SIZE),
+          z: Math.round(this.player.position.z / TILE_SIZE)
+        };
+        this.path = this.calculatePath(currentTile, targetTile);
+        this.clickMarker.position.x = targetTile.x * TILE_SIZE;
+        this.clickMarker.position.z = targetTile.z * TILE_SIZE;
+        this.clickMarker.visible = true;
+        break;
+
+      case 'camera_rotate':
+        this.targetCameraAngle = action.params.angle;
+        break;
+
+      case 'camera_zoom':
+        this.targetCameraZoom = action.params.zoom;
+        break;
+
+      case 'spawn_player':
+        this.addOtherPlayer(action.params.id, { x: action.params.x, y: action.params.z });
+        break;
+
+      case 'remove_player':
+        this.removeOtherPlayer(action.params.id);
+        break;
+
+      case 'message':
+        this.showDemoMessage(action.params.text);
+        break;
+    }
+  }
+
+  private showDemoMessage(text: string): void {
+    if (this.demoMessage) this.demoMessage.remove();
+
+    this.demoMessage = document.createElement('div');
+    this.demoMessage.style.cssText = `
+      position: fixed;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-family: Arial, sans-serif;
+      font-size: 24px;
+      font-weight: bold;
+      z-index: 1000;
+    `;
+    this.demoMessage.textContent = text;
+    document.body.appendChild(this.demoMessage);
+
+    setTimeout(() => {
+      if (this.demoMessage) {
+        this.demoMessage.remove();
+        this.demoMessage = null;
+      }
+    }, 3000);
+  }
+
+  private startDemo(scriptName: string): void {
+    const script = DEMO_SCRIPTS[scriptName];
+    if (script && this.demoRecorder) {
+      // Reset player position
+      this.player.position.set(0, 60, 0);
+      this.path = [];
+      this.currentTarget = null;
+      this.targetCameraAngle = 0;
+      this.targetCameraZoom = 800;
+
+      this.demoRecorder.playAndRecord(script);
+    }
   }
 
   private getTileKey(x: number, z: number): string {
@@ -408,6 +502,9 @@ class Game {
   }
 
   private onClick(event: MouseEvent): void {
+    // Don't process clicks during demo playback
+    if (this.demoRecorder?.playing) return;
+
     const rect = this.renderer.domElement.getBoundingClientRect();
     const mouse = new THREE.Vector2(
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -524,6 +621,9 @@ class Game {
   }
 
   private onKeyDown(event: KeyboardEvent): void {
+    // Don't process input during demo playback
+    if (this.demoRecorder?.playing) return;
+
     if (event.key === 'Shift') {
       this.isRunning = true;
     }
@@ -539,6 +639,11 @@ class Game {
     if (event.key === 'ArrowDown' || event.key === '-' || event.key === '_') {
       this.targetCameraZoom = Math.min(this.MAX_ZOOM, this.targetCameraZoom + 100);
     }
+
+    // Demo recording triggers
+    if (event.key === '1') this.startDemo('phase1-world-map');
+    if (event.key === '2') this.startDemo('phase1-multiplayer');
+    if (event.key === '3') this.startDemo('phase1-camera');
   }
 
   private onKeyUp(event: KeyboardEvent): void {
@@ -624,6 +729,11 @@ class Game {
     requestAnimationFrame(() => this.animate());
 
     const delta = this.clock.getDelta();
+
+    // Update demo recorder
+    if (this.demoRecorder) {
+      this.demoRecorder.update();
+    }
 
     this.updateMovement(delta);
     this.updateOtherPlayers(delta);
