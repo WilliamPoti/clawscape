@@ -10,7 +10,7 @@
 | Magenta Purple | `#CC00FF` | Icon color (gradient end) |
 | Gold | `#FFD700` | Icon stroke, shadow, star frame |
 | Purple-Black | `#100820` | Icon frame |
-| Yellow-Green | `#ADFF2F` | Badge |
+| Neon Green | `#71FF00` | Badge |
 | Deep Forest | `#3D5C00` | Badge stroke |
 
 ### Design Notes
@@ -28,7 +28,7 @@
   --fb-magenta: #CC00FF;
   --fb-gold: #FFD700;
   --fb-frame: #100820;
-  --fb-badge: #ADFF2F;
+  --fb-badge: #71FF00;
   --fb-badge-stroke: #3D5C00;
 }
 ```
