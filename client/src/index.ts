@@ -90,9 +90,7 @@ class Game {
   private demoRecorder: DemoRecorder | null = null;
   private fakePlayers: Map<number, OtherPlayer> = new Map();
 
-  // Recording canvas (composites game + captions + logo)
-  private recordingCanvas: HTMLCanvasElement | null = null;
-  private recordingCtx: CanvasRenderingContext2D | null = null;
+  // Recording
   private recordingLogo: HTMLImageElement | null = null;
 
   constructor() {
@@ -477,28 +475,24 @@ class Game {
       return;
     }
 
-    console.log(`Running demo: ${name}${record ? ' (recording)' : ''}`);
+    console.log(`Running demo: ${name}${record ? ' (recording both formats)' : ''}`);
 
     if (record && this.demoRecorder) {
-      // Create recording canvas for compositing game + captions + logo
-      this.recordingCanvas = document.createElement('canvas');
-      this.recordingCanvas.width = this.renderer.domElement.width;
-      this.recordingCanvas.height = this.renderer.domElement.height;
-      this.recordingCtx = this.recordingCanvas.getContext('2d');
-
-      // Load logo for recording
+      // Load logo for recording overlay
       this.recordingLogo = new Image();
       this.recordingLogo.src = '/assets/logo.png';
 
-      this.demoRecorder.startRecording(this.recordingCanvas);
+      // Start dual-format recording with overlay config
+      this.demoRecorder.startRecording(this.renderer.domElement, 60, {
+        logo: this.recordingLogo,
+        getCaption: () => this.demoRunner?.getCaption() || ''
+      });
     }
 
     this.demoRunner?.start(script, () => {
       // On complete
       if (record && this.demoRecorder) {
         this.demoRecorder.stopAndDownload(name);
-        this.recordingCanvas = null;
-        this.recordingCtx = null;
         this.recordingLogo = null;
       }
       console.log('Demo complete');
@@ -1119,140 +1113,6 @@ class Game {
     this.camera.lookAt(this.player.position);
 
     this.renderer.render(this.scene, this.camera);
-
-    // Composite to recording canvas if recording
-    if (this.recordingCtx && this.recordingCanvas && this.demoRunner) {
-      const ctx = this.recordingCtx;
-      const width = this.recordingCanvas.width;
-      const height = this.recordingCanvas.height;
-
-      // Draw game frame
-      ctx.drawImage(this.renderer.domElement, 0, 0);
-
-      // Draw caption - Future Buddy palette
-      const caption = this.demoRunner.getCaption();
-      if (caption) {
-        const fontSize = Math.round(height * 0.04);
-        ctx.font = `bold ${fontSize}px "Segoe UI", "Helvetica Neue", Arial, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        const centerX = width / 2;
-        const centerY = Math.round(height * 0.08);
-        const padding = fontSize * 0.8;
-        const textMetrics = ctx.measureText(caption);
-        const boxWidth = textMetrics.width + padding * 3;
-        const boxHeight = fontSize + padding * 1.2;
-        const boxX = centerX - boxWidth / 2;
-        const boxY = centerY - boxHeight / 2;
-
-        // Outer glow (cyan + purple)
-        ctx.shadowColor = 'rgba(0, 240, 255, 0.5)';
-        ctx.shadowBlur = 25;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-        ctx.beginPath();
-        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 6);
-        ctx.fill();
-
-        // Background with violet gradient
-        const gradient = ctx.createLinearGradient(boxX, boxY, boxX, boxY + boxHeight);
-        gradient.addColorStop(0, 'rgba(34, 0, 102, 0.9)');
-        gradient.addColorStop(0.5, 'rgba(16, 8, 32, 0.95)');
-        gradient.addColorStop(1, 'rgba(34, 0, 102, 0.9)');
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 6);
-        ctx.fill();
-
-        // Border (gold)
-        ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 6);
-        ctx.stroke();
-
-        // Inner highlight line at top
-        ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(boxX + 10, boxY + 1);
-        ctx.lineTo(boxX + boxWidth - 10, boxY + 1);
-        ctx.stroke();
-
-        // Text glow (purple/cyan)
-        ctx.shadowColor = 'rgba(136, 0, 255, 0.8)';
-        ctx.shadowBlur = 15;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
-
-        // Magenta text with gradient
-        const textGradient = ctx.createLinearGradient(centerX, centerY - fontSize/2, centerX, centerY + fontSize/2);
-        textGradient.addColorStop(0, '#CC00FF');
-        textGradient.addColorStop(0.5, '#AA00DD');
-        textGradient.addColorStop(1, '#8800FF');
-        ctx.fillStyle = textGradient;
-        ctx.fillText(caption, centerX, centerY);
-
-        // Reset shadow
-        ctx.shadowBlur = 0;
-      }
-
-      // Draw logo at YouTube Shorts safe zone (upper right: X: +350px, Y: -350px from center)
-      if (this.recordingLogo && this.recordingLogo.complete) {
-        const logoSize = 67;
-        const logoCenterX = (width / 2) + 350;
-        const logoCenterY = (height / 2) - 350;
-        const logoX = logoCenterX - (logoSize / 2);
-        const logoY = logoCenterY - (logoSize / 2);
-
-        // Logo glow
-        ctx.shadowColor = 'rgba(0, 240, 255, 0.6)';
-        ctx.shadowBlur = 20;
-        ctx.drawImage(this.recordingLogo, logoX, logoY, logoSize, logoSize);
-        ctx.shadowBlur = 0;
-
-        // Draw "FUTURE" text - above logo with slight slant (-6deg)
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        const futureX = (width / 2) + 340;
-        const futureY = (height / 2) - 368;
-
-        ctx.save();
-        ctx.translate(futureX, futureY);
-        ctx.rotate(-6 * Math.PI / 180);
-        ctx.font = '13px Bungee, sans-serif';
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
-        ctx.strokeText('FUTURE', 0, 0);
-
-        ctx.shadowColor = 'rgba(113, 255, 0, 0.8)';
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = '#71FF00';
-        ctx.fillText('FUTURE', 0, 0);
-        ctx.shadowBlur = 0;
-        ctx.restore();
-
-        // Draw "BUDDY" text - below logo with slight slant (+6deg)
-        const buddyX = (width / 2) + 360;
-        const buddyY = (height / 2) - 332;
-
-        ctx.save();
-        ctx.translate(buddyX, buddyY);
-        ctx.rotate(6 * Math.PI / 180);
-        ctx.font = '13px Bungee, sans-serif';
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
-        ctx.strokeText('BUDDY', 0, 0);
-
-        ctx.shadowColor = 'rgba(113, 255, 0, 0.8)';
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = '#71FF00';
-        ctx.fillText('BUDDY', 0, 0);
-        ctx.shadowBlur = 0;
-        ctx.restore();
-      }
-    }
   }
 }
 

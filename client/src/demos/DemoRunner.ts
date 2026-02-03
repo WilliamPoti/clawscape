@@ -259,7 +259,7 @@ export class DemoRunner {
       );
       padding: 14px 32px;
       border-radius: 6px;
-      border: 2px solid #FFD700;
+      border: 2px solid #00FF4A;
       box-shadow:
         0 0 20px rgba(0, 240, 255, 0.4),
         0 0 40px rgba(136, 0, 255, 0.3),
