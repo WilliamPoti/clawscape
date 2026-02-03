@@ -9,6 +9,7 @@ import {
   NetworkMessage
 } from '@clawscape/shared';
 import { DemoRunner, DemoRecorder, getDemoScript, DemoGameControls } from './demos/index.js';
+import { exportLogoComposition } from './demos/exportLogo.js';
 
 // ============================================
 // ClawScape Client - Phase 1: World Map System
@@ -179,6 +180,18 @@ class Game {
     const params = new URLSearchParams(window.location.search);
     const demoName = params.get('demo');
     const shouldRecord = params.has('record');
+    const positionMode = params.has('position');
+    const exportLogo = params.has('export-logo');
+
+    if (exportLogo) {
+      document.fonts.ready.then(() => exportLogoComposition());
+      return;
+    }
+
+    if (positionMode) {
+      this.initPositionMode();
+      return;
+    }
 
     if (demoName) {
       // Small delay to ensure everything is initialized
@@ -186,6 +199,274 @@ class Game {
         this.runDemo(demoName, shouldRecord);
       }, 500);
     }
+  }
+
+  private initPositionMode(): void {
+    console.log('Position mode - drag logo/text, use scroll to resize, Tab to switch');
+
+    // Create 9:16 frame overlay
+    const frame = document.createElement('div');
+    frame.id = 'position-frame';
+    const frameHeight = window.innerHeight * 0.9;
+    const frameWidth = frameHeight * (9 / 16);
+    frame.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: ${frameWidth}px;
+      height: ${frameHeight}px;
+      border: 3px dashed #FFD700;
+      pointer-events: none;
+      z-index: 998;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    `;
+    document.body.appendChild(frame);
+
+    // State
+    let activeElement: 'logo' | 'future' | 'buddy' = 'logo';
+    let logoSize = 67;
+    let logoX = window.innerWidth / 2 + 191;
+    let logoY = window.innerHeight / 2 - 367;
+    let futureSize = 13;
+    let futureX = window.innerWidth / 2 + 191;
+    let futureY = window.innerHeight / 2 - 320;
+    let buddySize = 13;
+    let buddyX = window.innerWidth / 2 + 191;
+    let buddyY = window.innerHeight / 2 - 300;
+
+    // Create draggable logo
+    const logo = document.createElement('img');
+    logo.id = 'position-logo';
+    logo.src = '/assets/logo.png';
+
+    const updateLogo = () => {
+      logo.style.cssText = `
+        position: fixed;
+        left: ${logoX}px;
+        top: ${logoY}px;
+        transform: translate(-50%, -50%);
+        width: ${logoSize}px;
+        height: auto;
+        cursor: grab;
+        z-index: 1000;
+        filter: drop-shadow(0 0 20px rgba(0, 240, 255, 0.6))
+                drop-shadow(0 0 40px rgba(136, 0, 255, 0.4));
+        outline: ${activeElement === 'logo' ? '3px solid #FFD700' : 'none'};
+      `;
+    };
+    updateLogo();
+    document.body.appendChild(logo);
+
+    // Create draggable "FUTURE" text
+    const futureText = document.createElement('div');
+    futureText.id = 'position-future';
+    futureText.innerHTML = 'FUTURE';
+
+    const updateFuture = () => {
+      futureText.style.cssText = `
+        position: fixed;
+        left: ${futureX}px;
+        top: ${futureY}px;
+        transform: translate(-50%, -50%);
+        font-family: 'Bungee', sans-serif;
+        font-size: ${futureSize}px;
+        text-align: center;
+        color: #71FF00;
+        -webkit-text-stroke: 2px #000000;
+        paint-order: stroke fill;
+        text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 15px rgba(113, 255, 0, 0.8);
+        cursor: grab;
+        z-index: 1000;
+        outline: ${activeElement === 'future' ? '3px solid #FFD700' : 'none'};
+        padding: 5px;
+      `;
+    };
+    updateFuture();
+    document.body.appendChild(futureText);
+
+    // Create draggable "BUDDY" text
+    const buddyText = document.createElement('div');
+    buddyText.id = 'position-buddy';
+    buddyText.innerHTML = 'BUDDY';
+
+    const updateBuddy = () => {
+      buddyText.style.cssText = `
+        position: fixed;
+        left: ${buddyX}px;
+        top: ${buddyY}px;
+        transform: translate(-50%, -50%);
+        font-family: 'Bungee', sans-serif;
+        font-size: ${buddySize}px;
+        text-align: center;
+        color: #71FF00;
+        -webkit-text-stroke: 2px #000000;
+        paint-order: stroke fill;
+        text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 15px rgba(113, 255, 0, 0.8);
+        cursor: grab;
+        z-index: 1000;
+        outline: ${activeElement === 'buddy' ? '3px solid #FFD700' : 'none'};
+        padding: 5px;
+      `;
+    };
+    updateBuddy();
+    document.body.appendChild(buddyText);
+
+    // Create info panel
+    const info = document.createElement('div');
+    info.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(16, 8, 32, 0.9);
+      border: 2px solid #FFD700;
+      padding: 15px;
+      color: #00F0FF;
+      font-family: monospace;
+      font-size: 14px;
+      z-index: 1001;
+      border-radius: 6px;
+    `;
+    const updateInfo = () => {
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const logoOffsetX = Math.round(logoX - centerX);
+      const logoOffsetY = Math.round(logoY - centerY);
+      const futureOffsetX = Math.round(futureX - centerX);
+      const futureOffsetY = Math.round(futureY - centerY);
+      const buddyOffsetX = Math.round(buddyX - centerX);
+      const buddyOffsetY = Math.round(buddyY - centerY);
+      info.innerHTML = `
+        <div style="color: #FFD700; margin-bottom: 10px;">POSITION MODE</div>
+        <div style="color: ${activeElement === 'logo' ? '#71FF00' : '#888'};">
+          [LOGO] Size: ${logoSize}px, X: ${logoOffsetX}, Y: ${logoOffsetY}
+        </div>
+        <div style="color: ${activeElement === 'future' ? '#71FF00' : '#888'};">
+          [FUTURE] Size: ${futureSize}px, X: ${futureOffsetX}, Y: ${futureOffsetY}
+        </div>
+        <div style="color: ${activeElement === 'buddy' ? '#71FF00' : '#888'};">
+          [BUDDY] Size: ${buddySize}px, X: ${buddyOffsetX}, Y: ${buddyOffsetY}
+        </div>
+        <div style="margin-top: 10px; color: #CC00FF;">
+          Tab = switch | Drag = move | Scroll = resize
+        </div>
+        <button id="copy-all-btn" style="
+          margin-top: 10px;
+          padding: 6px 12px;
+          background: #8800FF;
+          border: 2px solid #FFD700;
+          color: white;
+          cursor: pointer;
+          border-radius: 4px;
+          font-weight: bold;
+        ">Copy All</button>
+      `;
+      info.querySelector('#copy-all-btn')?.addEventListener('click', () => {
+        const values = 'Logo - Size: ' + logoSize + 'px, X: ' + logoOffsetX + 'px, Y: ' + logoOffsetY + 'px\\n' +
+          'FUTURE - Size: ' + futureSize + 'px, X: ' + futureOffsetX + 'px, Y: ' + futureOffsetY + 'px\\n' +
+          'BUDDY - Size: ' + buddySize + 'px, X: ' + buddyOffsetX + 'px, Y: ' + buddyOffsetY + 'px';
+        navigator.clipboard.writeText(values);
+      });
+    };
+    updateInfo();
+    document.body.appendChild(info);
+
+    // Tab to switch
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        if (activeElement === 'logo') activeElement = 'future';
+        else if (activeElement === 'future') activeElement = 'buddy';
+        else activeElement = 'logo';
+        updateLogo();
+        updateFuture();
+        updateBuddy();
+        updateInfo();
+      }
+    });
+
+    // Drag handling
+    let isDragging = false;
+    let dragTarget: 'logo' | 'future' | 'buddy' | null = null;
+
+    logo.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragTarget = 'logo';
+      activeElement = 'logo';
+      logo.style.cursor = 'grabbing';
+      updateLogo();
+      updateFuture();
+      updateBuddy();
+      updateInfo();
+      e.preventDefault();
+    });
+
+    futureText.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragTarget = 'future';
+      activeElement = 'future';
+      futureText.style.cursor = 'grabbing';
+      updateLogo();
+      updateFuture();
+      updateBuddy();
+      updateInfo();
+      e.preventDefault();
+    });
+
+    buddyText.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragTarget = 'buddy';
+      activeElement = 'buddy';
+      buddyText.style.cursor = 'grabbing';
+      updateLogo();
+      updateFuture();
+      updateBuddy();
+      updateInfo();
+      e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        if (dragTarget === 'logo') {
+          logoX = e.clientX;
+          logoY = e.clientY;
+          updateLogo();
+        } else if (dragTarget === 'future') {
+          futureX = e.clientX;
+          futureY = e.clientY;
+          updateFuture();
+        } else if (dragTarget === 'buddy') {
+          buddyX = e.clientX;
+          buddyY = e.clientY;
+          updateBuddy();
+        }
+        updateInfo();
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+      dragTarget = null;
+      logo.style.cursor = 'grab';
+      futureText.style.cursor = 'grab';
+      buddyText.style.cursor = 'grab';
+    });
+
+    // Scroll to resize active element
+    window.addEventListener('wheel', (e) => {
+      if (activeElement === 'logo') {
+        logoSize = Math.max(30, Math.min(500, logoSize - e.deltaY * 0.5));
+        updateLogo();
+      } else if (activeElement === 'future') {
+        futureSize = Math.max(8, Math.min(100, futureSize - e.deltaY * 0.1));
+        updateFuture();
+      } else if (activeElement === 'buddy') {
+        buddySize = Math.max(8, Math.min(100, buddySize - e.deltaY * 0.1));
+        updateBuddy();
+      }
+      updateInfo();
+      e.preventDefault();
+    }, { passive: false });
   }
 
   runDemo(name: string, record: boolean = false): void {
@@ -917,17 +1198,59 @@ class Game {
         ctx.shadowBlur = 0;
       }
 
-      // Draw logo in center
+      // Draw logo at YouTube Shorts safe zone (upper right: X: +350px, Y: -350px from center)
       if (this.recordingLogo && this.recordingLogo.complete) {
-        const logoSize = Math.round(height * 0.15);
-        const logoX = (width - logoSize) / 2;
-        const logoY = (height - logoSize) / 2;
+        const logoSize = 67;
+        const logoCenterX = (width / 2) + 350;
+        const logoCenterY = (height / 2) - 350;
+        const logoX = logoCenterX - (logoSize / 2);
+        const logoY = logoCenterY - (logoSize / 2);
 
         // Logo glow
         ctx.shadowColor = 'rgba(0, 240, 255, 0.6)';
         ctx.shadowBlur = 20;
         ctx.drawImage(this.recordingLogo, logoX, logoY, logoSize, logoSize);
         ctx.shadowBlur = 0;
+
+        // Draw "FUTURE" text - above logo with slight slant (-6deg)
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const futureX = (width / 2) + 340;
+        const futureY = (height / 2) - 368;
+
+        ctx.save();
+        ctx.translate(futureX, futureY);
+        ctx.rotate(-6 * Math.PI / 180);
+        ctx.font = '13px Bungee, sans-serif';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.strokeText('FUTURE', 0, 0);
+
+        ctx.shadowColor = 'rgba(113, 255, 0, 0.8)';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#71FF00';
+        ctx.fillText('FUTURE', 0, 0);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+        // Draw "BUDDY" text - below logo with slight slant (+6deg)
+        const buddyX = (width / 2) + 360;
+        const buddyY = (height / 2) - 332;
+
+        ctx.save();
+        ctx.translate(buddyX, buddyY);
+        ctx.rotate(6 * Math.PI / 180);
+        ctx.font = '13px Bungee, sans-serif';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.strokeText('BUDDY', 0, 0);
+
+        ctx.shadowColor = 'rgba(113, 255, 0, 0.8)';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#71FF00';
+        ctx.fillText('BUDDY', 0, 0);
+        ctx.shadowBlur = 0;
+        ctx.restore();
       }
     }
   }

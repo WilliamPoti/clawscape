@@ -38,6 +38,7 @@ export class DemoRunner {
   private fakePlayers: Map<number, FakePlayer> = new Map();
   private captionElement: HTMLDivElement | null = null;
   private logoElement: HTMLImageElement | null = null;
+  private titleElement: HTMLDivElement | null = null;
   private currentCaption: string = '';
 
   private onComplete: (() => void) | null = null;
@@ -46,6 +47,7 @@ export class DemoRunner {
     this.controls = controls;
     this.createCaptionElement();
     this.createLogoElement();
+    this.createTitleElement();
   }
 
   start(script: DemoScript, onComplete?: () => void): void {
@@ -285,17 +287,17 @@ export class DemoRunner {
     }
   }
 
-  // Logo UI
+  // Logo UI - positioned for YouTube Shorts safe zone (upper right)
   private createLogoElement(): void {
     this.logoElement = document.createElement('img');
     this.logoElement.id = 'demo-logo';
     this.logoElement.src = '/assets/logo.png';
     this.logoElement.style.cssText = `
       position: fixed;
-      top: 50%;
-      left: 50%;
+      top: calc(50% - 350px);
+      left: calc(50% + 350px);
       transform: translate(-50%, -50%);
-      width: clamp(80px, 15vw, 150px);
+      width: 67px;
       height: auto;
       opacity: 0;
       transition: opacity 0.5s ease;
@@ -307,15 +309,79 @@ export class DemoRunner {
     document.body.appendChild(this.logoElement);
   }
 
+  // Title text - FUTURE and BUDDY positioned for YouTube Shorts safe zone
+  private createTitleElement(): void {
+    // FUTURE text - above logo
+    const futureEl = document.createElement('div');
+    futureEl.className = 'demo-title-part';
+    futureEl.innerHTML = 'FUTURE';
+    futureEl.style.cssText = `
+      position: fixed;
+      top: calc(50% - 368px);
+      left: calc(50% + 340px);
+      transform: translate(-50%, -50%) rotate(-6deg);
+      font-family: 'Bungee', sans-serif;
+      font-size: 13px;
+      text-align: center;
+      color: #71FF00;
+      -webkit-text-stroke: 1px #000000;
+      paint-order: stroke fill;
+      text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 10px rgba(113, 255, 0, 0.8);
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+      z-index: 999;
+    `;
+    document.body.appendChild(futureEl);
+
+    // BUDDY text - below logo
+    this.titleElement = document.createElement('div');
+    this.titleElement.id = 'demo-title';
+    this.titleElement.innerHTML = 'BUDDY';
+    this.titleElement.style.cssText = `
+      position: fixed;
+      top: calc(50% - 332px);
+      left: calc(50% + 360px);
+      transform: translate(-50%, -50%) rotate(6deg);
+      font-family: 'Bungee', sans-serif;
+      font-size: 13px;
+      text-align: center;
+      color: #71FF00;
+      -webkit-text-stroke: 1px #000000;
+      paint-order: stroke fill;
+      text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 10px rgba(113, 255, 0, 0.8);
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+      z-index: 999;
+    `;
+    document.body.appendChild(this.titleElement);
+
+    // Store reference to future element for show/hide
+    (this as any).futureElement = futureEl;
+  }
+
   showLogo(): void {
     if (this.logoElement) {
       this.logoElement.style.opacity = '1';
+    }
+    if (this.titleElement) {
+      this.titleElement.style.opacity = '1';
+    }
+    if ((this as any).futureElement) {
+      (this as any).futureElement.style.opacity = '1';
     }
   }
 
   hideLogo(): void {
     if (this.logoElement) {
       this.logoElement.style.opacity = '0';
+    }
+    if (this.titleElement) {
+      this.titleElement.style.opacity = '0';
+    }
+    if ((this as any).futureElement) {
+      (this as any).futureElement.style.opacity = '0';
     }
   }
 
