@@ -36,15 +36,18 @@ export class DemoRunner {
   private actionCompleted: boolean = false;
 
   private fakePlayers: Map<number, FakePlayer> = new Map();
+  private headerElement: HTMLDivElement | null = null;
   private captionElement: HTMLDivElement | null = null;
   private logoElement: HTMLImageElement | null = null;
   private titleElement: HTMLDivElement | null = null;
+  private currentHeader: string = '';
   private currentCaption: string = '';
 
   private onComplete: (() => void) | null = null;
 
   constructor(controls: DemoGameControls) {
     this.controls = controls;
+    this.createHeaderElement();
     this.createCaptionElement();
     this.createLogoElement();
     this.createTitleElement();
@@ -114,6 +117,15 @@ export class DemoRunner {
 
     const action = this.script.actions[this.currentActionIndex];
     if (!action) return;
+
+    // Show header if present (persists until changed)
+    if (action.header !== undefined) {
+      if (action.header) {
+        this.showHeader(action.header);
+      } else {
+        this.hideHeader();
+      }
+    }
 
     // Show caption if present
     if (action.caption) {
@@ -218,6 +230,7 @@ export class DemoRunner {
   private complete(): void {
     console.log('Demo complete');
     this.state = 'complete';
+    this.hideHeader();
     this.hideCaption();
     this.hideLogo();
     this.cleanupFakePlayers();
@@ -234,36 +247,92 @@ export class DemoRunner {
     this.fakePlayers.clear();
   }
 
-  // Caption UI - Future Buddy palette
-  private createCaptionElement(): void {
-    this.captionElement = document.createElement('div');
-    this.captionElement.id = 'demo-caption';
-    this.captionElement.style.cssText = `
+  // Header UI - persistent title at top
+  private createHeaderElement(): void {
+    this.headerElement = document.createElement('div');
+    this.headerElement.id = 'demo-header';
+    this.headerElement.style.cssText = `
       position: fixed;
       top: 6%;
       left: 50%;
       transform: translateX(-50%);
       font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      font-size: clamp(20px, 3vw, 32px);
+      font-size: clamp(24px, 4vw, 44px);
       font-weight: bold;
-      color: #CC00FF;
+      color: #FFEE00;
       text-shadow:
-        0 0 10px rgba(136, 0, 255, 0.8),
-        0 0 20px rgba(0, 240, 255, 0.5),
-        2px 2px 4px rgba(0, 0, 0, 0.8);
+        0 0 15px rgba(255, 238, 0, 0.9),
+        0 0 30px rgba(255, 0, 255, 0.5),
+        0 0 45px rgba(0, 240, 255, 0.3),
+        3px 3px 6px rgba(0, 0, 0, 0.9);
       background: linear-gradient(
-        180deg,
-        rgba(34, 0, 102, 0.9) 0%,
-        rgba(16, 8, 32, 0.95) 50%,
-        rgba(34, 0, 102, 0.9) 100%
+        135deg,
+        rgba(26, 0, 51, 0.95) 0%,
+        rgba(40, 0, 60, 0.9) 50%,
+        rgba(26, 0, 51, 0.95) 100%
       );
-      padding: 14px 32px;
-      border-radius: 6px;
-      border: 2px solid #00FF4A;
+      padding: 14px 36px;
+      border-radius: 12px;
+      border: 2px solid #00F0FF;
       box-shadow:
-        0 0 20px rgba(0, 240, 255, 0.4),
-        0 0 40px rgba(136, 0, 255, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        0 0 25px rgba(255, 238, 0, 0.5),
+        0 0 50px rgba(255, 0, 255, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 1001;
+    `;
+    document.body.appendChild(this.headerElement);
+  }
+
+  private showHeader(text: string): void {
+    this.currentHeader = text;
+    if (this.headerElement) {
+      this.headerElement.textContent = text;
+      this.headerElement.style.opacity = '1';
+    }
+  }
+
+  private hideHeader(): void {
+    this.currentHeader = '';
+    if (this.headerElement) {
+      this.headerElement.style.opacity = '0';
+    }
+  }
+
+  // Caption UI - sub-caption below header
+  private createCaptionElement(): void {
+    this.captionElement = document.createElement('div');
+    this.captionElement.id = 'demo-caption';
+    this.captionElement.style.cssText = `
+      position: fixed;
+      top: 14%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: clamp(20px, 3vw, 34px);
+      font-weight: bold;
+      color: #00F0FF;
+      text-shadow:
+        0 0 15px rgba(0, 240, 255, 0.9),
+        0 0 30px rgba(255, 0, 255, 0.6),
+        0 0 45px rgba(255, 110, 199, 0.4),
+        3px 3px 6px rgba(0, 0, 0, 0.9);
+      background: linear-gradient(
+        135deg,
+        rgba(26, 0, 51, 0.95) 0%,
+        rgba(40, 0, 60, 0.9) 50%,
+        rgba(26, 0, 51, 0.95) 100%
+      );
+      padding: 12px 32px;
+      border-radius: 12px;
+      border: 2px solid #FF6EC7;
+      box-shadow:
+        0 0 25px rgba(0, 240, 255, 0.5),
+        0 0 50px rgba(255, 0, 255, 0.3),
+        0 0 75px rgba(255, 238, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
       opacity: 0;
       transition: opacity 0.3s ease;
       pointer-events: none;
@@ -287,17 +356,17 @@ export class DemoRunner {
     }
   }
 
-  // Logo UI - positioned for YouTube Shorts safe zone (upper right)
+  // Logo UI - positioned top left
   private createLogoElement(): void {
     this.logoElement = document.createElement('img');
     this.logoElement.id = 'demo-logo';
     this.logoElement.src = '/assets/logo.png';
     this.logoElement.style.cssText = `
       position: fixed;
-      top: calc(50% - 350px);
-      left: calc(50% + 350px);
-      transform: translate(-50%, -50%);
-      width: 67px;
+      top: 17px;
+      left: 17px;
+      transform: none;
+      width: 180px;
       height: auto;
       opacity: 0;
       transition: opacity 0.5s ease;
@@ -365,23 +434,12 @@ export class DemoRunner {
     if (this.logoElement) {
       this.logoElement.style.opacity = '1';
     }
-    if (this.titleElement) {
-      this.titleElement.style.opacity = '1';
-    }
-    if ((this as any).futureElement) {
-      (this as any).futureElement.style.opacity = '1';
-    }
+    // Text elements disabled - logo has text built in
   }
 
   hideLogo(): void {
     if (this.logoElement) {
       this.logoElement.style.opacity = '0';
-    }
-    if (this.titleElement) {
-      this.titleElement.style.opacity = '0';
-    }
-    if ((this as any).futureElement) {
-      (this as any).futureElement.style.opacity = '0';
     }
   }
 
@@ -396,5 +454,9 @@ export class DemoRunner {
 
   getCaption(): string {
     return this.currentCaption;
+  }
+
+  getHeader(): string {
+    return this.currentHeader;
   }
 }

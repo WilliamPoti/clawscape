@@ -16,6 +16,7 @@ export interface DemoAction {
   params: Record<string, any>;
   duration?: number;  // How long this action takes (ms)
   caption?: string;   // Text to display during this action
+  header?: string;    // Persistent header text (stays until changed)
 }
 
 export interface DemoScript {

@@ -1,9 +1,11 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {
   TILE_SIZE,
   CHUNK_SIZE,
   TileTexture,
-  TILE_BLOCKED,
   WorldMap,
   PlayerUpdate,
   NetworkMessage
@@ -20,15 +22,15 @@ const RUN_SPEED = 5;
 const SERVER_URL = 'ws://localhost:3000';
 const RENDER_DISTANCE = 2; // chunks
 
-// Tile colors
+// Tile colors - tinted to complement logo palette
 const TILE_COLORS: Record<TileTexture, number> = {
-  [TileTexture.GRASS_LIGHT]: 0x4a7c4e,
-  [TileTexture.GRASS_DARK]: 0x3d6b40,
-  [TileTexture.DIRT]: 0x8b6914,
-  [TileTexture.STONE]: 0x707070,
-  [TileTexture.WATER]: 0x3498db,
-  [TileTexture.SAND]: 0xc2b280,
-  [TileTexture.WOOD]: 0x8b4513,
+  [TileTexture.GRASS_LIGHT]: 0x3A6B5A,  // Teal-green
+  [TileTexture.GRASS_DARK]: 0x2A5A4A,   // Darker teal-green
+  [TileTexture.DIRT]: 0x5A4050,         // Purple-brown
+  [TileTexture.STONE]: 0x5A4A6B,        // Purple-gray
+  [TileTexture.WATER]: 0x00F0FF,        // Electric Cyan
+  [TileTexture.SAND]: 0xAAA060,         // Muted yellow
+  [TileTexture.WOOD]: 0x6B3D5A,         // Purple-brown
 };
 
 interface TilePosition {
@@ -52,6 +54,7 @@ class Game {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
+  private composer: EffectComposer;
   private clock: THREE.Clock;
 
   // World map
@@ -74,7 +77,6 @@ class Game {
 
   // UI
   private clickMarker: THREE.Mesh;
-  private blockedMarker: THREE.Mesh;
   private statusText: HTMLDivElement;
 
   // Camera
@@ -96,9 +98,9 @@ class Game {
   constructor() {
     this.worldMap = new WorldMap();
 
-    // Scene
+    // Scene - deep purple void background matching logo palette
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x87ceeb);
+    this.scene.background = new THREE.Color(0x1a0033);
 
     // Camera
     this.camera = new THREE.PerspectiveCamera(
@@ -115,16 +117,31 @@ class Game {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.2;
+
+    // Post-processing for dreamy glow effect
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.8,   // bloom strength
+      0.4,   // radius
+      0.2    // threshold - lower = more glow
+    );
+    this.composer.addPass(bloomPass);
+
+    // Dreamy fog matching palette
+    this.scene.fog = new THREE.FogExp2(0x1a0033, 0.0004);
 
     // Clock
     this.clock = new THREE.Clock();
 
-    // Create world
-    this.player = this.createPlayer(0xff6b6b);
-    this.clickMarker = this.createClickMarker(0xffff00);
-    this.blockedMarker = this.createClickMarker(0xff0000);
-    this.blockedMarker.visible = false;
+    // Create world - colors from logo palette
+    this.player = this.createPlayer(0xFF6EC7);  // Sunset Pink
+    this.clickMarker = this.createClickMarker(0xFFEE00);  // Solar Yellow
     this.setupLighting();
+    this.setupTikiTorches();
     this.statusText = this.createStatusUI();
 
     // Initial tile load
@@ -485,6 +502,7 @@ class Game {
       // Start dual-format recording with overlay config
       this.demoRecorder.startRecording(this.renderer.domElement, 60, {
         logo: this.recordingLogo,
+        getHeader: () => this.demoRunner?.getHeader() || '',
         getCaption: () => this.demoRunner?.getCaption() || ''
       });
     }
@@ -521,7 +539,7 @@ class Game {
   }
 
   private createFakePlayer(id: number, x: number, z: number, name: string): THREE.Mesh {
-    const mesh = this.createPlayer(0x6b9fff);
+    const mesh = this.createPlayer(0x00F0FF)  // Electric Cyan;
     mesh.position.set(x * TILE_SIZE, 60, z * TILE_SIZE);
 
     const label = this.createPlayerLabel(name);
@@ -553,10 +571,7 @@ class Game {
   }
 
   private showBlockedFeedback(x: number, z: number): void {
-    this.blockedMarker.position.x = x * TILE_SIZE;
-    this.blockedMarker.position.z = z * TILE_SIZE;
-    this.blockedMarker.visible = true;
-    setTimeout(() => { this.blockedMarker.visible = false; }, 500);
+    // Blocked feedback removed
   }
 
   isInDemoMode(): boolean {
@@ -601,38 +616,90 @@ class Game {
     if (!tile) return;
 
     const geometry = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
-    const color = TILE_COLORS[tile.texture] ?? 0xff00ff;
-    const material = new THREE.MeshStandardMaterial({ color });
+
+    // Simple checker pattern for demo
+    const isLight = (tileX + tileZ) % 2 === 0;
+    const color = isLight ? 0x2A5A4A : 0x1F4A3A;  // Teal checker pattern
+
+    const material = new THREE.MeshStandardMaterial({
+      color,
+      emissive: color,
+      emissiveIntensity: 0.05,
+      metalness: 0.3,
+      roughness: 0.7
+    });
 
     const mesh = new THREE.Mesh(geometry, material);
     mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(tileX * TILE_SIZE, tile.height, tileZ * TILE_SIZE);
+    mesh.position.set(tileX * TILE_SIZE, 0, tileZ * TILE_SIZE);  // Flat ground
     this.scene.add(mesh);
 
     const tileMesh: TileMesh = { mesh };
 
-    // Add obstacle visual for blocked tiles
-    if (tile.flags & TILE_BLOCKED) {
-      if (tile.texture === TileTexture.STONE) {
-        // Rock obstacle
-        const rockGeo = new THREE.DodecahedronGeometry(40);
-        const rockMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
-        const rock = new THREE.Mesh(rockGeo, rockMat);
-        rock.position.set(tileX * TILE_SIZE, tile.height + 40, tileZ * TILE_SIZE);
-        rock.rotation.set(Math.random(), Math.random(), Math.random());
-        this.scene.add(rock);
-        tileMesh.obstacle = rock;
-      }
-    }
-
     this.loadedTiles.set(this.getTileKey(tileX, tileZ), tileMesh);
+  }
+
+  private createTikiTorch(x: number, z: number): void {
+    // Pole
+    const poleGeo = new THREE.CylinderGeometry(8, 12, 150, 8);
+    const poleMat = new THREE.MeshStandardMaterial({
+      color: 0x4A3020,
+      roughness: 0.9,
+      metalness: 0.1
+    });
+    const pole = new THREE.Mesh(poleGeo, poleMat);
+    pole.position.set(x, 75, z);
+    this.scene.add(pole);
+
+    // Torch head
+    const headGeo = new THREE.CylinderGeometry(15, 10, 25, 8);
+    const headMat = new THREE.MeshStandardMaterial({
+      color: 0x2A2020,
+      roughness: 0.8
+    });
+    const head = new THREE.Mesh(headGeo, headMat);
+    head.position.set(x, 160, z);
+    this.scene.add(head);
+
+    // Flame (glowing sphere)
+    const flameGeo = new THREE.SphereGeometry(20, 16, 16);
+    const flameMat = new THREE.MeshStandardMaterial({
+      color: 0xFFAA00,
+      emissive: 0xFF6600,
+      emissiveIntensity: 2,
+      transparent: true,
+      opacity: 0.9
+    });
+    const flame = new THREE.Mesh(flameGeo, flameMat);
+    flame.position.set(x, 185, z);
+    flame.scale.set(1, 1.3, 1);
+    this.scene.add(flame);
+
+    // Point light for the torch
+    const light = new THREE.PointLight(0xFF6600, 1, 400);
+    light.position.set(x, 185, z);
+    this.scene.add(light);
+  }
+
+  private setupTikiTorches(): void {
+    // Place torches in a pattern around the play area
+    const torchPositions = [
+      { x: -3, z: -3 }, { x: 3, z: -3 },
+      { x: -3, z: 3 }, { x: 3, z: 3 },
+      { x: -6, z: 0 }, { x: 6, z: 0 },
+      { x: 0, z: -6 }, { x: 0, z: 6 },
+    ];
+
+    for (const pos of torchPositions) {
+      this.createTikiTorch(pos.x * TILE_SIZE, pos.z * TILE_SIZE);
+    }
   }
 
   private createStatusUI(): HTMLDivElement {
     const div = document.createElement('div');
     div.style.cssText = `
       position: fixed;
-      top: 10px;
+      bottom: 10px;
       left: 10px;
       color: white;
       font-family: monospace;
@@ -740,7 +807,7 @@ class Game {
   private addOtherPlayer(id: number, position: { x: number; y: number }): void {
     if (this.otherPlayers.has(id)) return;
 
-    const mesh = this.createPlayer(0x6b9fff);
+    const mesh = this.createPlayer(0x00F0FF)  // Electric Cyan;
     mesh.position.set(position.x * TILE_SIZE, 60, position.y * TILE_SIZE);
 
     const label = this.createPlayerLabel(`Player ${id}`);
@@ -804,7 +871,13 @@ class Game {
 
   private createPlayer(color: number): THREE.Mesh {
     const geometry = new THREE.BoxGeometry(60, 120, 60);
-    const material = new THREE.MeshStandardMaterial({ color });
+    const material = new THREE.MeshStandardMaterial({
+      color,
+      emissive: color,
+      emissiveIntensity: 0.3,
+      metalness: 0.8,
+      roughness: 0.2
+    });
     const player = new THREE.Mesh(geometry, material);
     player.position.set(0, 60, 0);
     this.scene.add(player);
@@ -815,7 +888,9 @@ class Game {
     const geometry = new THREE.RingGeometry(20, 35, 4);
     const material = new THREE.MeshBasicMaterial({
       color,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.9
     });
     const marker = new THREE.Mesh(geometry, material);
     marker.rotation.x = -Math.PI / 2;
@@ -827,12 +902,19 @@ class Game {
   }
 
   private setupLighting(): void {
-    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    // Ambient light with slight cyan tint
+    const ambient = new THREE.AmbientLight(0xAADDFF, 0.5);
     this.scene.add(ambient);
 
-    const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+    // Main light with warm pink/yellow tint
+    const sun = new THREE.DirectionalLight(0xFFEEDD, 0.9);
     sun.position.set(500, 1000, 500);
     this.scene.add(sun);
+
+    // Accent light with magenta tint from below
+    const accent = new THREE.DirectionalLight(0xFF6EC7, 0.2);
+    accent.position.set(-300, -200, 300);
+    this.scene.add(accent);
   }
 
   private onClick(event: MouseEvent): void {
@@ -858,17 +940,6 @@ class Game {
         z: Math.round(target.z / TILE_SIZE)
       };
 
-      // Check if target is walkable
-      if (!this.worldMap.isWalkable(targetTile.x, targetTile.z)) {
-        // Show red X marker briefly
-        this.blockedMarker.position.x = targetTile.x * TILE_SIZE;
-        this.blockedMarker.position.z = targetTile.z * TILE_SIZE;
-        this.blockedMarker.visible = true;
-        this.clickMarker.visible = false;
-        setTimeout(() => { this.blockedMarker.visible = false; }, 500);
-        return;
-      }
-
       const currentTile: TilePosition = {
         x: Math.round(this.player.position.x / TILE_SIZE),
         z: Math.round(this.player.position.z / TILE_SIZE)
@@ -880,7 +951,6 @@ class Game {
         this.clickMarker.position.x = targetTile.x * TILE_SIZE;
         this.clickMarker.position.z = targetTile.z * TILE_SIZE;
         this.clickMarker.visible = true;
-        this.blockedMarker.visible = false;
       }
     }
   }
@@ -928,8 +998,6 @@ class Game {
       ];
 
       for (const neighbor of neighbors) {
-        if (!this.worldMap.isWalkable(neighbor.x, neighbor.z)) continue;
-
         // Diagonal movement cost is higher
         const isDiagonal = neighbor.x !== current.x && neighbor.z !== current.z;
         const moveCost = isDiagonal ? 1.414 : 1;
@@ -997,6 +1065,7 @@ class Game {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.composer.setSize(window.innerWidth, window.innerHeight);
   }
 
   private updateMovement(delta: number): void {
@@ -1092,9 +1161,6 @@ class Game {
     if (this.clickMarker.visible) {
       this.clickMarker.rotation.z += delta * 2;
     }
-    if (this.blockedMarker.visible) {
-      this.blockedMarker.rotation.z -= delta * 4;
-    }
 
     // Smooth camera
     const angleDiff = this.targetCameraAngle - this.cameraAngle;
@@ -1112,7 +1178,8 @@ class Game {
     this.camera.position.copy(this.player.position).add(cameraOffset);
     this.camera.lookAt(this.player.position);
 
-    this.renderer.render(this.scene, this.camera);
+    // Use composer for post-processing (bloom glow)
+    this.composer.render();
   }
 }
 

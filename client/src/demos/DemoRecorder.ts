@@ -11,6 +11,7 @@ interface RecorderInstance {
 
 interface OverlayConfig {
   logo: HTMLImageElement | null;
+  getHeader: () => string;
   getCaption: () => string;
 }
 
@@ -156,92 +157,51 @@ export class DemoRecorder {
   ): void {
     if (!this.overlay) return;
 
-    const { logo, getCaption } = this.overlay;
+    const { logo, getHeader, getCaption } = this.overlay;
+    const header = getHeader();
     const caption = getCaption();
 
-    // Format-specific positioning
+    // Format-specific positioning - logo in top left for both
     if (format === 'horizontal') {
-      // Horizontal: logo bottom-right corner
+      // Horizontal: logo top-left corner
       if (logo && logo.complete) {
-        const logoSize = 80;
-        const margin = 30;
-        const logoX = width - logoSize - margin;
-        const logoY = height - logoSize - margin;
+        const logoSize = 220;
+        const margin = 17;
+        const logoX = margin;
+        const logoY = margin;
 
         ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
-
-        // Draw text near logo
-        this.drawLogoText(ctx, logoX + logoSize / 2, logoY, logoSize, 'horizontal');
       }
 
-      // Caption at top center
+      // Header at top center
+      if (header) {
+        this.drawHeader(ctx, width / 2, 70, header, 40);
+      }
+
+      // Caption below header
       if (caption) {
-        this.drawCaption(ctx, width / 2, height * 0.08, caption, 32);
+        this.drawCaption(ctx, width / 2, 150, caption, 32);
       }
     } else {
-      // Shorts: logo upper-right, safe from UI
+      // Shorts: logo top-left, 25% bigger
       if (logo && logo.complete) {
-        const logoSize = 67;
-        const logoX = width - logoSize - 50;
-        const logoY = 120;
+        const logoSize = 250;
+        const margin = 17;
+        const logoX = margin;
+        const logoY = margin;
 
-        ctx.drawImage(logo, logoX - logoSize / 2, logoY - logoSize / 2, logoSize, logoSize);
-
-        // Draw text with slant composition
-        this.drawLogoText(ctx, logoX, logoY, logoSize, 'shorts');
+        ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
       }
 
-      // Caption at top center (below safe area)
+      // Header for shorts
+      if (header) {
+        this.drawHeader(ctx, width / 2, 380, header, 52);
+      }
+
+      // Caption below header for shorts
       if (caption) {
-        this.drawCaption(ctx, width / 2, height * 0.06, caption, 36);
+        this.drawCaption(ctx, width / 2, 500, caption, 44);
       }
-    }
-  }
-
-  private drawLogoText(
-    ctx: CanvasRenderingContext2D,
-    centerX: number,
-    centerY: number,
-    logoSize: number,
-    format: 'horizontal' | 'shorts'
-  ): void {
-    const scale = logoSize / 67;
-    const fontSize = Math.round(13 * scale);
-
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = `${fontSize}px Bungee, sans-serif`;
-
-    if (format === 'shorts') {
-      // Slanted text composition for Shorts
-      // FUTURE - above, shifted left, -6deg
-      ctx.save();
-      ctx.translate(centerX - 10 * scale, centerY - 18 * scale);
-      ctx.rotate(-6 * Math.PI / 180);
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 2 * scale;
-      ctx.strokeText('FUTURE', 0, 0);
-      ctx.fillStyle = '#71FF00';
-      ctx.fillText('FUTURE', 0, 0);
-      ctx.restore();
-
-      // BUDDY - below, shifted right, +6deg
-      ctx.save();
-      ctx.translate(centerX + 10 * scale, centerY + 18 * scale);
-      ctx.rotate(6 * Math.PI / 180);
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 2 * scale;
-      ctx.strokeText('BUDDY', 0, 0);
-      ctx.fillStyle = '#71FF00';
-      ctx.fillText('BUDDY', 0, 0);
-      ctx.restore();
-    } else {
-      // Horizontal: compact text below logo
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 2 * scale;
-      ctx.strokeText('FUTURE BUDDY', centerX, centerY + logoSize / 2 + fontSize);
-      ctx.fillStyle = '#71FF00';
-      ctx.fillText('FUTURE BUDDY', centerX, centerY + logoSize / 2 + fontSize);
     }
   }
 
@@ -254,32 +214,86 @@ export class DemoRecorder {
   ): void {
     ctx.save();
 
-    // Background
+    // Background - matching logo palette
     ctx.font = `bold ${fontSize}px "Segoe UI", Arial, sans-serif`;
     const metrics = ctx.measureText(text);
-    const padding = 14;
+    const padding = 18;
     const bgWidth = metrics.width + padding * 4;
-    const bgHeight = fontSize + padding * 2;
+    const bgHeight = fontSize + padding * 2.5;
 
-    const gradient = ctx.createLinearGradient(x - bgWidth / 2, y, x - bgWidth / 2, y + bgHeight);
-    gradient.addColorStop(0, 'rgba(34, 0, 102, 0.9)');
-    gradient.addColorStop(0.5, 'rgba(16, 8, 32, 0.95)');
-    gradient.addColorStop(1, 'rgba(34, 0, 102, 0.9)');
+    const gradient = ctx.createLinearGradient(x - bgWidth / 2, y - bgHeight / 2, x + bgWidth / 2, y + bgHeight / 2);
+    gradient.addColorStop(0, 'rgba(26, 0, 51, 0.95)');
+    gradient.addColorStop(0.5, 'rgba(40, 0, 60, 0.9)');
+    gradient.addColorStop(1, 'rgba(26, 0, 51, 0.95)');
 
     ctx.fillStyle = gradient;
-    ctx.strokeStyle = '#00FF4A';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#FF6EC7';  // Sunset Pink border
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.roundRect(x - bgWidth / 2, y - bgHeight / 2, bgWidth, bgHeight, 6);
+    ctx.roundRect(x - bgWidth / 2, y - bgHeight / 2, bgWidth, bgHeight, 12);
     ctx.fill();
     ctx.stroke();
 
-    // Text
+    // Text - Electric Cyan with multi-color glow
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#CC00FF';
-    ctx.shadowColor = 'rgba(136, 0, 255, 0.8)';
-    ctx.shadowBlur = 10;
+
+    // Outer glow layers
+    ctx.shadowColor = 'rgba(255, 0, 255, 0.6)';
+    ctx.shadowBlur = 25;
+    ctx.fillStyle = '#00F0FF';
+    ctx.fillText(text, x, y);
+
+    // Inner glow
+    ctx.shadowColor = 'rgba(0, 240, 255, 0.9)';
+    ctx.shadowBlur = 15;
+    ctx.fillText(text, x, y);
+
+    ctx.restore();
+  }
+
+  private drawHeader(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    text: string,
+    fontSize: number
+  ): void {
+    ctx.save();
+
+    // Background - matching logo palette (slightly different from caption)
+    ctx.font = `bold ${fontSize}px "Segoe UI", Arial, sans-serif`;
+    const metrics = ctx.measureText(text);
+    const padding = 20;
+    const bgWidth = metrics.width + padding * 4;
+    const bgHeight = fontSize + padding * 2.5;
+
+    const gradient = ctx.createLinearGradient(x - bgWidth / 2, y - bgHeight / 2, x + bgWidth / 2, y + bgHeight / 2);
+    gradient.addColorStop(0, 'rgba(26, 0, 51, 0.95)');
+    gradient.addColorStop(0.5, 'rgba(40, 0, 60, 0.9)');
+    gradient.addColorStop(1, 'rgba(26, 0, 51, 0.95)');
+
+    ctx.fillStyle = gradient;
+    ctx.strokeStyle = '#00F0FF';  // Cyan border for header
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(x - bgWidth / 2, y - bgHeight / 2, bgWidth, bgHeight, 12);
+    ctx.fill();
+    ctx.stroke();
+
+    // Text - Solar Yellow with multi-color glow
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Outer glow layers
+    ctx.shadowColor = 'rgba(255, 0, 255, 0.5)';
+    ctx.shadowBlur = 25;
+    ctx.fillStyle = '#FFEE00';
+    ctx.fillText(text, x, y);
+
+    // Inner glow
+    ctx.shadowColor = 'rgba(255, 238, 0, 0.9)';
+    ctx.shadowBlur = 15;
     ctx.fillText(text, x, y);
 
     ctx.restore();

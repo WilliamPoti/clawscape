@@ -8,96 +8,100 @@ export const movementDemo: DemoScript = {
   name: 'movement',
   description: 'Player movement in all 8 directions, walking and running',
   actions: [
-    // Start
+    // Start with header
     {
       type: 'wait',
       params: {},
-      duration: 800,
-      caption: '8-directional movement'
+      duration: 1000,
+      header: '8-Directional Movement'
     },
 
-    // Cardinal directions (walking) - using safe coordinates avoiding rocks
+    // Cardinal directions (walking)
     {
       type: 'move',
       params: { x: 2, z: 0 },
-      caption: 'East'
+      caption: '→ East'
     },
     {
       type: 'move',
       params: { x: 2, z: 2 },
-      caption: 'South'
+      caption: '↓ South'
     },
     {
       type: 'move',
       params: { x: 0, z: 2 },
-      caption: 'West'
+      caption: '← West'
     },
     {
       type: 'move',
       params: { x: 0, z: 0 },
-      caption: 'North'
+      caption: '↑ North'
     },
 
     // Diagonal directions (walking)
     {
       type: 'move',
       params: { x: 2, z: 2 },
-      caption: 'Southeast'
+      caption: '↘ Southeast'
     },
     {
       type: 'move',
       params: { x: 0, z: 4 },
-      caption: 'Southwest'
+      caption: '↙ Southwest'
     },
     {
       type: 'move',
       params: { x: -2, z: 2 },
-      caption: 'Northwest'
+      caption: '↖ Northwest'
     },
     {
       type: 'move',
       params: { x: 0, z: 0 },
-      caption: 'Northeast'
+      caption: '↗ Northeast'
     },
 
-    // Running demonstration
+    // Running demonstration - new header
     {
       type: 'wait',
       params: {},
       duration: 500,
-      caption: 'Walking speed'
+      header: 'Movement Speed',
+      caption: '🚶 Walking'
     },
     {
       type: 'move',
       params: { x: 5, z: 0 },
+      caption: '🚶 Walking'
     },
     {
       type: 'move',
       params: { x: 0, z: 0 },
+      caption: '🚶 Walking'
     },
 
     {
       type: 'set_running',
       params: { running: true },
       duration: 500,
-      caption: 'Running speed (hold Shift)'
+      caption: '🏃 Running (Shift)'
     },
     {
       type: 'move',
       params: { x: 5, z: 0 },
-      caption: 'Running speed (hold Shift)'
+      caption: '🏃 Running (Shift)'
     },
     {
       type: 'move',
       params: { x: 0, z: 0 },
-      caption: 'Running speed (hold Shift)'
+      caption: '🏃 Running (Shift)'
     },
 
-    // Turn off running
+    // End - clear header
     {
       type: 'set_running',
       params: { running: false },
-      duration: 100
+      duration: 100,
+      header: ''
     },
     {
       type: 'wait',
