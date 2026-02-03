@@ -4,7 +4,7 @@
 
 | Name | Hex | Used For |
 |------|-----|----------|
-| Intense Cyan | `#00F0FF` | Icon primary color, futuristic glow |
+| Intense Cyan | `#00F0FF` | Icon background, futuristic glow |
 | Deep Purple | `#8800FF` | Icon secondary color, magical accent |
 | Gold | `#FFD700` | Icon stroke, caption text |
 | Purple-Black | `#100820` | Icon frame, dark backgrounds |
