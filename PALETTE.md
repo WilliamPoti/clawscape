@@ -5,7 +5,8 @@
 | Name | Hex | Used For |
 |------|-----|----------|
 | Intense Cyan | `#00F0FF` | Icon background |
-| Deep Purple | `#8800FF` | Icon color |
+| Deep Purple | `#8800FF` | Icon color (gradient start) |
+| Magenta Purple | `#CC00FF` | Icon color (gradient end) |
 | Gold | `#FFD700` | Icon stroke, shadow |
 | Purple-Black | `#100820` | Icon frame |
 | Yellow-Green | `#ADFF2F` | Badge |
@@ -22,6 +23,7 @@
 :root {
   --fb-cyan: #00F0FF;
   --fb-purple: #8800FF;
+  --fb-magenta: #CC00FF;
   --fb-gold: #FFD700;
   --fb-frame: #100820;
   --fb-badge: #ADFF2F;
