@@ -6,15 +6,15 @@ Watch each feature being built, step by step.
 
 ## Core Movement (#001-007)
 
-| # | Feature | Video | Date |
-|---|---------|-------|------|
-| 001 | Movement System | *Coming soon* | - |
-| 002 | Click to Move | *Coming soon* | - |
-| 003 | Multiplayer Sync | *Coming soon* | - |
-| 004 | Camera Controls | *Coming soon* | - |
-| 005 | Collision Detection | *Coming soon* | - |
-| 006 | World Map | *Coming soon* | - |
-| 007 | A* Pathfinding | *Coming soon* | - |
+| # | Feature | Video | Shorts | Date |
+|---|---------|-------|--------|------|
+| 001 | Movement System | [Watch](https://www.youtube.com/watch?v=yGDf46NYBU0) | [Watch](https://www.youtube.com/watch?v=vJugloGgAUk) | 2026-02-03 |
+| 002 | Click to Move | *Coming soon* | - | - |
+| 003 | Multiplayer Sync | *Coming soon* | - | - |
+| 004 | Camera Controls | *Coming soon* | - | - |
+| 005 | Collision Detection | *Coming soon* | - | - |
+| 006 | World Map | *Coming soon* | - | - |
+| 007 | A* Pathfinding | *Coming soon* | - | - |
 
 ---
 
@@ -56,4 +56,4 @@ Every video is recorded using our automated demo system. Script-defined sequence
 
 ---
 
-*Last updated: 2026-02-02*
+*Last updated: 2026-02-03*

@@ -4,3 +4,14 @@ dist/
 *.log
 .env
 .env.local
+
+# YouTube API secrets
+client_secrets.json
+.youtube_token.pickle
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Recordings (too large for git)
+recordings/
