@@ -8,6 +8,7 @@ import {
   PlayerUpdate,
   NetworkMessage
 } from '@clawscape/shared';
+import { DemoRunner, DemoRecorder, getDemoScript, DemoGameControls } from './demos/index.js';
 
 // ============================================
 // ClawScape Client - Phase 1: World Map System
@@ -83,6 +84,16 @@ class Game {
   private readonly MIN_ZOOM = 400;
   private readonly MAX_ZOOM = 1500;
 
+  // Demo system
+  private demoRunner: DemoRunner | null = null;
+  private demoRecorder: DemoRecorder | null = null;
+  private fakePlayers: Map<number, OtherPlayer> = new Map();
+
+  // Recording canvas (composites game + captions + logo)
+  private recordingCanvas: HTMLCanvasElement | null = null;
+  private recordingCtx: CanvasRenderingContext2D | null = null;
+  private recordingLogo: HTMLImageElement | null = null;
+
   constructor() {
     this.worldMap = new WorldMap();
 
@@ -102,7 +113,7 @@ class Game {
 
     // Renderer
     const canvas = document.getElementById('game') as HTMLCanvasElement;
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -130,9 +141,151 @@ class Game {
     // Connect to server
     this.connect();
 
+    // Initialize demo system
+    this.initDemoSystem();
+
     // Start
     this.animate();
     console.log('ClawScape initialized - World Map System');
+  }
+
+  // ==================
+  // Demo System
+  // ==================
+
+  private initDemoSystem(): void {
+    // Create demo controls interface
+    const controls: DemoGameControls = {
+      setPlayerTarget: (x, z) => this.setPlayerTarget(x, z),
+      getPlayerTilePosition: () => this.getPlayerTilePosition(),
+      isPlayerMoving: () => this.isPlayerMoving(),
+      setCameraAngle: (angle) => { this.targetCameraAngle = angle; },
+      setCameraZoom: (zoom) => { this.targetCameraZoom = zoom; },
+      createFakePlayer: (id, x, z, name) => this.createFakePlayer(id, x, z, name),
+      moveFakePlayer: (id, x, z) => this.moveFakePlayer(id, x, z),
+      removeFakePlayer: (id) => this.removeFakePlayer(id),
+      showBlockedFeedback: (x, z) => this.showBlockedFeedback(x, z),
+      setRunning: (running) => { this.isRunning = running; },
+    };
+
+    this.demoRunner = new DemoRunner(controls);
+    this.demoRecorder = new DemoRecorder();
+
+    // Check URL for demo parameter
+    this.checkDemoUrl();
+  }
+
+  private checkDemoUrl(): void {
+    const params = new URLSearchParams(window.location.search);
+    const demoName = params.get('demo');
+    const shouldRecord = params.has('record');
+
+    if (demoName) {
+      // Small delay to ensure everything is initialized
+      setTimeout(() => {
+        this.runDemo(demoName, shouldRecord);
+      }, 500);
+    }
+  }
+
+  runDemo(name: string, record: boolean = false): void {
+    const script = getDemoScript(name);
+    if (!script) {
+      console.error(`Demo not found: ${name}`);
+      console.log('Available demos:', ['movement', 'multiplayer', 'camera', 'pathfinding']);
+      return;
+    }
+
+    console.log(`Running demo: ${name}${record ? ' (recording)' : ''}`);
+
+    if (record && this.demoRecorder) {
+      // Create recording canvas for compositing game + captions + logo
+      this.recordingCanvas = document.createElement('canvas');
+      this.recordingCanvas.width = this.renderer.domElement.width;
+      this.recordingCanvas.height = this.renderer.domElement.height;
+      this.recordingCtx = this.recordingCanvas.getContext('2d');
+
+      // Load logo for recording
+      this.recordingLogo = new Image();
+      this.recordingLogo.src = '/assets/logo.png';
+
+      this.demoRecorder.startRecording(this.recordingCanvas);
+    }
+
+    this.demoRunner?.start(script, () => {
+      // On complete
+      if (record && this.demoRecorder) {
+        this.demoRecorder.stopAndDownload(name);
+        this.recordingCanvas = null;
+        this.recordingCtx = null;
+        this.recordingLogo = null;
+      }
+      console.log('Demo complete');
+    });
+  }
+
+  private setPlayerTarget(x: number, z: number): void {
+    const currentTile = this.getPlayerTilePosition();
+    this.path = this.calculatePath(currentTile, { x, z });
+    if (this.path.length > 0) {
+      this.clickMarker.position.x = x * TILE_SIZE;
+      this.clickMarker.position.z = z * TILE_SIZE;
+      this.clickMarker.visible = true;
+    }
+  }
+
+  private getPlayerTilePosition(): { x: number; z: number } {
+    return {
+      x: Math.round(this.player.position.x / TILE_SIZE),
+      z: Math.round(this.player.position.z / TILE_SIZE)
+    };
+  }
+
+  private isPlayerMoving(): boolean {
+    return this.currentTarget !== null || this.path.length > 0;
+  }
+
+  private createFakePlayer(id: number, x: number, z: number, name: string): THREE.Mesh {
+    const mesh = this.createPlayer(0x6b9fff);
+    mesh.position.set(x * TILE_SIZE, 60, z * TILE_SIZE);
+
+    const label = this.createPlayerLabel(name);
+    mesh.add(label);
+
+    this.fakePlayers.set(id, {
+      id,
+      mesh,
+      targetPosition: mesh.position.clone(),
+      username: name
+    });
+
+    return mesh;
+  }
+
+  private moveFakePlayer(id: number, x: number, z: number): void {
+    const player = this.fakePlayers.get(id);
+    if (player) {
+      player.targetPosition.set(x * TILE_SIZE, 60, z * TILE_SIZE);
+    }
+  }
+
+  private removeFakePlayer(id: number): void {
+    const player = this.fakePlayers.get(id);
+    if (player) {
+      this.scene.remove(player.mesh);
+      this.fakePlayers.delete(id);
+    }
+  }
+
+  private showBlockedFeedback(x: number, z: number): void {
+    this.blockedMarker.position.x = x * TILE_SIZE;
+    this.blockedMarker.position.z = z * TILE_SIZE;
+    this.blockedMarker.visible = true;
+    setTimeout(() => { this.blockedMarker.visible = false; }, 500);
+  }
+
+  isInDemoMode(): boolean {
+    return this.demoRunner?.isRunning() ?? false;
   }
 
   private getTileKey(x: number, z: number): string {
@@ -408,6 +561,9 @@ class Game {
   }
 
   private onClick(event: MouseEvent): void {
+    // Block input during demo
+    if (this.isInDemoMode()) return;
+
     const rect = this.renderer.domElement.getBoundingClientRect();
     const mouse = new THREE.Vector2(
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -524,6 +680,9 @@ class Game {
   }
 
   private onKeyDown(event: KeyboardEvent): void {
+    // Block input during demo
+    if (this.isInDemoMode()) return;
+
     if (event.key === 'Shift') {
       this.isRunning = true;
     }
@@ -549,6 +708,9 @@ class Game {
 
   private onWheel(event: WheelEvent): void {
     event.preventDefault();
+    // Block input during demo
+    if (this.isInDemoMode()) return;
+
     const zoomDelta = event.deltaY > 0 ? 100 : -100;
     this.targetCameraZoom = Math.max(
       this.MIN_ZOOM,
@@ -620,13 +782,35 @@ class Game {
     }
   }
 
+  private updateFakePlayers(delta: number): void {
+    for (const [, player] of this.fakePlayers) {
+      const dx = player.targetPosition.x - player.mesh.position.x;
+      const dz = player.targetPosition.z - player.mesh.position.z;
+      const distance = Math.sqrt(dx * dx + dz * dz);
+
+      if (distance > 1) {
+        const speed = WALK_SPEED * TILE_SIZE;
+        const moveDistance = Math.min(speed * delta, distance);
+        player.mesh.position.x += (dx / distance) * moveDistance;
+        player.mesh.position.z += (dz / distance) * moveDistance;
+        player.mesh.rotation.y = Math.atan2(dx, dz);
+      }
+    }
+  }
+
   private animate(): void {
     requestAnimationFrame(() => this.animate());
 
     const delta = this.clock.getDelta();
 
+    // Update demo system
+    if (this.demoRunner?.isRunning()) {
+      this.demoRunner.update(delta);
+    }
+
     this.updateMovement(delta);
     this.updateOtherPlayers(delta);
+    this.updateFakePlayers(delta);
     this.updateLoadedTiles();
     this.updateStatus();
 
@@ -654,7 +838,101 @@ class Game {
     this.camera.lookAt(this.player.position);
 
     this.renderer.render(this.scene, this.camera);
+
+    // Composite to recording canvas if recording
+    if (this.recordingCtx && this.recordingCanvas && this.demoRunner) {
+      const ctx = this.recordingCtx;
+      const width = this.recordingCanvas.width;
+      const height = this.recordingCanvas.height;
+
+      // Draw game frame
+      ctx.drawImage(this.renderer.domElement, 0, 0);
+
+      // Draw caption - Future Buddy palette
+      const caption = this.demoRunner.getCaption();
+      if (caption) {
+        const fontSize = Math.round(height * 0.04);
+        ctx.font = `bold ${fontSize}px "Segoe UI", "Helvetica Neue", Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const centerX = width / 2;
+        const centerY = Math.round(height * 0.08);
+        const padding = fontSize * 0.8;
+        const textMetrics = ctx.measureText(caption);
+        const boxWidth = textMetrics.width + padding * 3;
+        const boxHeight = fontSize + padding * 1.2;
+        const boxX = centerX - boxWidth / 2;
+        const boxY = centerY - boxHeight / 2;
+
+        // Outer glow (cyan + purple)
+        ctx.shadowColor = 'rgba(0, 240, 255, 0.5)';
+        ctx.shadowBlur = 25;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 6);
+        ctx.fill();
+
+        // Background with violet gradient
+        const gradient = ctx.createLinearGradient(boxX, boxY, boxX, boxY + boxHeight);
+        gradient.addColorStop(0, 'rgba(34, 0, 102, 0.9)');
+        gradient.addColorStop(0.5, 'rgba(16, 8, 32, 0.95)');
+        gradient.addColorStop(1, 'rgba(34, 0, 102, 0.9)');
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 6);
+        ctx.fill();
+
+        // Border (gold)
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 6);
+        ctx.stroke();
+
+        // Inner highlight line at top
+        ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(boxX + 10, boxY + 1);
+        ctx.lineTo(boxX + boxWidth - 10, boxY + 1);
+        ctx.stroke();
+
+        // Text glow (purple/cyan)
+        ctx.shadowColor = 'rgba(136, 0, 255, 0.8)';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        // Magenta text with gradient
+        const textGradient = ctx.createLinearGradient(centerX, centerY - fontSize/2, centerX, centerY + fontSize/2);
+        textGradient.addColorStop(0, '#CC00FF');
+        textGradient.addColorStop(0.5, '#AA00DD');
+        textGradient.addColorStop(1, '#8800FF');
+        ctx.fillStyle = textGradient;
+        ctx.fillText(caption, centerX, centerY);
+
+        // Reset shadow
+        ctx.shadowBlur = 0;
+      }
+
+      // Draw logo in center
+      if (this.recordingLogo && this.recordingLogo.complete) {
+        const logoSize = Math.round(height * 0.15);
+        const logoX = (width - logoSize) / 2;
+        const logoY = (height - logoSize) / 2;
+
+        // Logo glow
+        ctx.shadowColor = 'rgba(0, 240, 255, 0.6)';
+        ctx.shadowBlur = 20;
+        ctx.drawImage(this.recordingLogo, logoX, logoY, logoSize, logoSize);
+        ctx.shadowBlur = 0;
+      }
+    }
   }
 }
 
-new Game();
+// Create game instance and expose for console access
+const game = new Game();
+(window as any).game = game;
