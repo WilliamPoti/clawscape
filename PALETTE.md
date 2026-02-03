@@ -8,7 +8,7 @@
 | Dark Violet | `#220066` | Icon background (gradient edge) |
 | Deep Purple | `#8800FF` | Icon color (gradient start) |
 | Magenta Purple | `#CC00FF` | Icon color (gradient end) |
-| Gold | `#FFD700` | Icon stroke, shadow |
+| Gold | `#FFD700` | Icon stroke, shadow, star frame |
 | Purple-Black | `#100820` | Icon frame |
 | Yellow-Green | `#ADFF2F` | Badge |
 | Deep Forest | `#3D5C00` | Badge stroke |
