@@ -4,13 +4,13 @@
 
 | Name | Hex | Used For |
 |------|-----|----------|
-| Intense Cyan | `#00F0FF` | Icon background, futuristic glow |
-| Deep Purple | `#8800FF` | Icon secondary color, magical accent |
-| Gold | `#FFD700` | Icon stroke, caption text |
-| Purple-Black | `#100820` | Icon frame, dark backgrounds |
-| Yellow-Green | `#ADFF2F` | Badge (stands out, blends with gold) |
+| Intense Cyan | `#00F0FF` | Icon background |
+| Deep Purple | `#8800FF` | Icon color |
+| Gold | `#FFD700` | Icon stroke |
+| Purple-Black | `#100820` | Icon frame |
+| Yellow-Green | `#ADFF2F` | Badge |
 | Deep Forest | `#3D5C00` | Badge stroke |
-| Dark Purple | `#2A0055` | Icon shadow |
+| Dark Purple | `#2A0055` | Shadow |
 
 ### Design Notes
 - Icon uses abstract shape from game-icons.net
