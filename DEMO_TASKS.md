@@ -120,7 +120,9 @@ Building an automated demo recording system for ClawScape.
 - [x] **D.6.2.1** Upload #001 - Movement System (horizontal + shorts)
   - Horizontal: https://www.youtube.com/watch?v=yGDf46NYBU0
   - Shorts: https://www.youtube.com/watch?v=vJugloGgAUk
-- [ ] **D.6.2.2** Upload #002 - Multiplayer Sync (horizontal + shorts)
+- [x] **D.6.2.2** Upload #002 - Multiplayer Sync (horizontal + shorts)
+  - Horizontal: https://www.youtube.com/watch?v=tRiBjE4Wzus
+  - Shorts: https://www.youtube.com/watch?v=c6cUCa4RYQM
 - [ ] **D.6.2.3** Upload #003 - Camera Controls (horizontal + shorts)
 
 ### D.6.3 GitHub Documentation
