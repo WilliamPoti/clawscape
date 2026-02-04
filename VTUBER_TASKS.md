@@ -48,17 +48,17 @@
 - [ ] Create position presets (corner, center, talking, etc.)
 - [ ] Test smooth position transitions (tweening)
 
-## 2.4 Expressions
+## 2.4 Expressions (~) PARTIAL
 
-- [ ] Map available expressions from model files
-- [ ] Create expression trigger function
-- [ ] Test each expression:
-  - [ ] akazame (red face)
-  - [ ] aozame (blue/pale)
-  - [ ] ase (sweat)
-  - [ ] asetakusann (heavy sweat)
-  - [ ] bousi off (hat off)
-  - [ ] tere (embarrassed)
+- [x] Map available expressions from model files
+- [x] Create expression trigger function
+- [~] Test each expression (hard to see at current zoom):
+  - [~] akazame (red face)
+  - [~] aozame (blue/pale)
+  - [~] ase (sweat)
+  - [~] asetakusann (heavy sweat)
+  - [~] bousi off (hat off)
+  - [~] tere (embarrassed)
 - [ ] Create expression queue system (for chaining)
 
 ## 2.5 Animations
@@ -75,9 +75,9 @@
 
 # PHASE 3: LIPSYNC
 
-## 3.1 Audio Analysis
+## 3.1 Audio Analysis (~) IN PROGRESS
 
-- [ ] Research Web Audio API amplitude analysis
+- [~] Research Web Audio API amplitude analysis
 - [ ] Create AudioAnalyzer class
 - [ ] Implement real-time amplitude detection
 - [ ] Test with generated voiceover files
