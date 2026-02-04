@@ -66,14 +66,10 @@ Building an automated demo recording system for ClawScape.
 - [x] **D.3.1.2** Create `client/src/demos/scripts/index.ts` registry
 - [x] **D.3.1.3** Export all scripts from registry by name
 
-### D.3.2 Demo Scripts (All 7)
-- [x] **D.3.2.1** Create `001-movement.ts` - basic player movement
-- [ ] **D.3.2.2** Create `002-click-to-move.ts` - click destination system
-- [x] **D.3.2.3** Create `003-multiplayer.ts` - other players visible
-- [x] **D.3.2.4** Create `004-camera.ts` - rotation and zoom
-- [ ] **D.3.2.5** Create `005-collision.ts` - blocked tiles, red X feedback
-- [ ] **D.3.2.6** Create `006-worldmap.ts` - tile types, chunks, biomes
-- [x] **D.3.2.7** Create `007-pathfinding.ts` - A* navigation around obstacles
+### D.3.2 Demo Scripts (Core 3)
+- [x] **D.3.2.1** Create `001-movement.ts` - 8-dir movement, click-to-move, pathfinding, walk/run
+- [x] **D.3.2.2** Create `002-multiplayer.ts` - other players joining, moving, disconnecting
+- [x] **D.3.2.3** Create `003-camera.ts` - rotation and zoom controls
 
 ---
 
@@ -124,12 +120,8 @@ Building an automated demo recording system for ClawScape.
 - [x] **D.6.2.1** Upload #001 - Movement System (horizontal + shorts)
   - Horizontal: https://www.youtube.com/watch?v=yGDf46NYBU0
   - Shorts: https://www.youtube.com/watch?v=vJugloGgAUk
-- [ ] **D.6.2.2** Upload #002 - Click to Move
-- [ ] **D.6.2.3** Upload #003 - Multiplayer Sync
-- [ ] **D.6.2.4** Upload #004 - Camera Controls
-- [ ] **D.6.2.5** Upload #005 - Collision Detection
-- [ ] **D.6.2.6** Upload #006 - World Map
-- [ ] **D.6.2.7** Upload #007 - A* Pathfinding
+- [ ] **D.6.2.2** Upload #002 - Multiplayer Sync (horizontal + shorts)
+- [ ] **D.6.2.3** Upload #003 - Camera Controls (horizontal + shorts)
 
 ### D.6.3 GitHub Documentation
 - [x] **D.6.3.1** Update DEMOS.md with video links (in progress, #001 added)
@@ -144,11 +136,11 @@ Building an automated demo recording system for ClawScape.
 |-------|-------|-------|
 | D.1 | 18 | Core infrastructure (types, recorder, runner) |
 | D.2 | 12 | Action implementations |
-| D.3 | 10 | Demo scripts (all 7 features) |
+| D.3 | 6 | Demo scripts (3 core features) |
 | D.4 | 9 | Game integration + URL trigger |
 | D.5 | 5 | Polish |
-| D.6 | 11 | Publish to YouTube + GitHub |
-| **Total** | **65** | |
+| D.6 | 8 | Publish to YouTube + GitHub |
+| **Total** | **58** | |
 
 ---
 

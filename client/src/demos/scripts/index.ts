@@ -3,16 +3,14 @@
 
 import { DemoScript } from '../types.js';
 import { movementDemo } from './001-movement.js';
-import { multiplayerDemo } from './003-multiplayer.js';
-import { cameraDemo } from './004-camera.js';
-import { pathfindingDemo } from './007-pathfinding.js';
+import { multiplayerDemo } from './002-multiplayer.js';
+import { cameraDemo } from './003-camera.js';
 
 // Registry of all available demos
 const demoScripts: Map<string, DemoScript> = new Map([
   [movementDemo.name, movementDemo],
   [multiplayerDemo.name, multiplayerDemo],
   [cameraDemo.name, cameraDemo],
-  [pathfindingDemo.name, pathfindingDemo],
 ]);
 
 export function getDemoScript(name: string): DemoScript | undefined {
@@ -27,5 +25,4 @@ export {
   movementDemo,
   multiplayerDemo,
   cameraDemo,
-  pathfindingDemo,
 };
