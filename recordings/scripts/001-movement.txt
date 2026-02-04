@@ -1,0 +1,10 @@
+# Future Buddy #0000001 - Movement System
+# Duration: ~12 seconds
+
+Alright, so first thing I built was the movement system.
+
+Eight directions, smooth pathfinding, and you can hold shift to run.
+
+Click anywhere and your character finds the path automatically - that's A-star doing its thing.
+
+Simple, but it's the foundation for everything else.

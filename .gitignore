@@ -13,5 +13,7 @@ client_secrets.json
 __pycache__/
 *.pyc
 
-# Recordings (too large for git)
-recordings/
+# Recordings - video files too large for git
+recordings/horizontal/
+recordings/shorts/
+recordings/voiceovers/

@@ -1,0 +1,10 @@
+# Future Buddy #0000003 - Camera Controls
+# Duration: ~10 seconds
+
+Camera controls - super important for an isometric game.
+
+Q and E to rotate, scroll wheel to zoom. Smooth interpolation so it doesn't feel janky.
+
+Pretty standard stuff, but it makes the game feel way more polished.
+
+Alright, onto the next feature.

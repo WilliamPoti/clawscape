@@ -1,0 +1,10 @@
+# Future Buddy #0000002 - Multiplayer Sync
+# Duration: ~10 seconds
+
+Now this is where it gets fun - real-time multiplayer.
+
+When someone joins, they just pop into your world. You see them moving around, doing their thing.
+
+And when they disconnect? Gone. Clean.
+
+All synced over WebSockets. No lag, no jank.
