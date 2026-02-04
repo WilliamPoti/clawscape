@@ -1,4 +1,4 @@
-// ClawScape Map/Tile System
+// Future Buddy Map/Tile System
 
 export const CHUNK_SIZE = 16; // 16x16 tiles per chunk
 export const TILE_SIZE = 128; // world units per tile

@@ -1,4 +1,4 @@
-// ClawScape Shared Types & Constants
+// Future Buddy Shared Types & Constants
 
 // Re-export map system
 export * from './map.js';

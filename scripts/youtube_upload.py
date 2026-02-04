@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-YouTube Video Uploader for ClawScape demos
+YouTube Video Uploader for Future Buddy demos
 Usage: python youtube_upload.py <video_file> --title "Title" --description "Desc"
 """
 
@@ -51,7 +51,7 @@ def upload_video(youtube, video_file, title, description, tags=None, category='2
         'snippet': {
             'title': title,
             'description': description,
-            'tags': tags or ['ClawScape', 'gamedev', 'indie', 'demo'],
+            'tags': tags or ['Future Buddy', 'gamedev', 'indie', 'demo'],
             'categoryId': category  # 20 = Gaming
         },
         'status': {

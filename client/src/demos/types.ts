@@ -1,4 +1,4 @@
-// ClawScape Demo System - Type Definitions
+// Future Buddy Demo System - Type Definitions
 
 export type DemoActionType =
   | 'move'           // Move player to tile

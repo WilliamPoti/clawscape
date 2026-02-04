@@ -1,4 +1,4 @@
-# ClawScape Demo System - Soul Document
+# Future Buddy Demo System - Soul Document
 
 *Make recording effortless so you can focus on building.*
 

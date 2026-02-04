@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 
 // ============================================
-// ClawScape Server - Phase 1: Multiplayer
+// Future Buddy Server - Phase 1: Multiplayer
 // ============================================
 
 // Shared constants (duplicated for now - will fix imports later)
@@ -37,7 +37,7 @@ let nextPlayerId = 1;
 
 const wss = new WebSocketServer({ port: PORT });
 
-console.log(`ClawScape Server running on ws://localhost:${PORT}`);
+console.log(`Future Buddy Server running on ws://localhost:${PORT}`);
 
 wss.on('connection', (ws: WebSocket) => {
   // Create player

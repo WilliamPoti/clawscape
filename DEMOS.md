@@ -1,4 +1,4 @@
-# ClawScape Development Demos
+# Future Buddy Development Demos
 
 Watch each feature being built, step by step.
 

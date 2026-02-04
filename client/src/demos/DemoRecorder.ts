@@ -1,4 +1,4 @@
-// ClawScape Demo System - Dual Format Video Recorder
+// Future Buddy Demo System - Dual Format Video Recorder
 // Records both 16:9 (horizontal) and 9:16 (Shorts) with format-specific overlays
 
 interface RecorderInstance {

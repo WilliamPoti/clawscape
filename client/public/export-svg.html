@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Export SVG</title>
+</head>
+<body>
+  <script>
+    const size = 1024;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    const img = new Image();
+    img.onload = function() {
+      ctx.drawImage(img, 0, 0, size, size);
+      canvas.toBlob(function(blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'logo-v2-1024.png';
+        a.click();
+        URL.revokeObjectURL(url);
+        document.body.innerHTML = '<h1>Exported! Check your downloads.</h1>';
+      }, 'image/png');
+    };
+    img.src = '/assets/logo-v2.svg';
+  </script>
+</body>
+</html>

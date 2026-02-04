@@ -1,4 +1,4 @@
-// ClawScape Demo System - Script Runner
+// Future Buddy Demo System - Script Runner
 // Executes demo scripts by controlling game elements
 
 import { DemoScript, DemoAction, DemoState, FakePlayer } from './types.js';

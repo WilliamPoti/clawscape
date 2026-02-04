@@ -1,6 +1,6 @@
-# ClawScape Demo System - Task List
+# Future Buddy Demo System - Task List
 
-Building an automated demo recording system for ClawScape.
+Building an automated demo recording system for Future Buddy.
 
 **Scope:** This system spans the entire project - all 16 phases, potentially hundreds of demos over development. Numbers go up forever (#001, #002... #347). New features get new numbers. History is preserved.
 
@@ -114,7 +114,7 @@ Building an automated demo recording system for ClawScape.
 
 ### D.6.1 YouTube Setup
 - [x] **D.6.1.1** Set up YouTube API for automated uploads
-- [ ] **D.6.1.2** Create YouTube playlist "ClawScape Development"
+- [ ] **D.6.1.2** Create YouTube playlist "Future Buddy Development"
 
 ### D.6.2 YouTube Upload (All via Demo System)
 - [x] **D.6.2.1** Upload #001 - Movement System (horizontal + shorts)

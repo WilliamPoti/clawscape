@@ -1,8 +1,8 @@
-# ClawScape - AI Agent Context
+# Future Buddy - AI Agent Context
 
 ## What Is This Project?
 
-ClawScape is a RuneScape-like MMORPG being built **from scratch** using:
+Future Buddy is a RuneScape-like MMORPG being built **from scratch** using:
 - **Client**: Three.js (WebGL) + TypeScript
 - **Server**: Node.js + TypeScript + WebSocket
 - **Database**: SQLite (dev) / PostgreSQL (prod)

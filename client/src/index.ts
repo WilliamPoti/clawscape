@@ -14,7 +14,7 @@ import { DemoRunner, DemoRecorder, getDemoScript, DemoGameControls } from './dem
 import { exportLogoComposition } from './demos/exportLogo.js';
 
 // ============================================
-// ClawScape Client - Phase 1: World Map System
+// Future Buddy Client - Phase 1: World Map System
 // ============================================
 
 const WALK_SPEED = 2.5;
@@ -162,7 +162,7 @@ class Game {
 
     // Start
     this.animate();
-    console.log('ClawScape initialized - World Map System');
+    console.log('Future Buddy initialized - World Map System');
   }
 
   // ==================

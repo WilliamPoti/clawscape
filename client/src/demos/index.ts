@@ -1,4 +1,4 @@
-// ClawScape Demo System
+// Future Buddy Demo System
 // Main exports
 
 export * from './types.js';

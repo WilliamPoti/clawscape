@@ -1,4 +1,4 @@
-# ClawScape Demo System - Technical Overview
+# Future Buddy Demo System - Technical Overview
 
 *See also: [DEMO_SOUL.md](./DEMO_SOUL.md) | [DEMO_TASKS.md](./DEMO_TASKS.md)*
 
@@ -142,7 +142,7 @@ export const pathfindingDemo: DemoScript = {
 6. Start DemoRecorder
 7. When demo completes:
    - Stop recording
-   - Generate filename: `clawscape-pathfinding-20260202-143022.mp4`
+   - Generate filename: `futurebuddy-pathfinding-20260202-143022.mp4`
    - Trigger download
 
 ### URL Examples
@@ -253,12 +253,12 @@ This means:
 ### Filename Format
 
 ```
-clawscape-{demoname}-{YYYYMMDD}-{HHMMSS}.mp4
+futurebuddy-{demoname}-{YYYYMMDD}-{HHMMSS}.mp4
 ```
 
 Examples:
-- `clawscape-pathfinding-20260202-143022.mp4`
-- `clawscape-worldmap-20260202-143156.mp4`
+- `futurebuddy-pathfinding-20260202-143022.mp4`
+- `futurebuddy-worldmap-20260202-143156.mp4`
 
 ---
 
@@ -300,7 +300,7 @@ class Game {
     this.demoRecorder.startRecording(this.renderer.domElement);
     this.demoRunner.start(script, () => {
       // On complete
-      this.demoRecorder.stopAndDownload(`clawscape-${name}`);
+      this.demoRecorder.stopAndDownload(`futurebuddy-${name}`);
     });
   }
 
@@ -348,8 +348,8 @@ After recording each demo (no editing needed):
 ### YouTube (Raw Demos)
 
 1. Upload raw MP4 directly to YouTube as **unlisted**
-2. Add to playlist "ClawScape Development"
-3. Title format: `ClawScape Dev #001 - Movement System`
+2. Add to playlist "Future Buddy Development"
+3. Title format: `Future Buddy Dev #001 - Movement System`
 4. Description: Brief explanation + link to GitHub
 5. Captions are baked into the video - no post-production
 
