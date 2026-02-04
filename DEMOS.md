@@ -10,7 +10,7 @@ Watch each feature being built, step by step.
 |---|---------|-------|--------|------|
 | 001 | Movement System | [Watch](https://www.youtube.com/watch?v=yGDf46NYBU0) | [Watch](https://www.youtube.com/watch?v=vJugloGgAUk) | 2026-02-03 |
 | 002 | Multiplayer Sync | [Watch](https://www.youtube.com/watch?v=tRiBjE4Wzus) | [Watch](https://www.youtube.com/watch?v=c6cUCa4RYQM) | 2026-02-03 |
-| 003 | Camera Controls | *Coming soon* | - | - |
+| 003 | Camera Controls | [Watch](https://www.youtube.com/watch?v=tgSbrSCpEGk) | [Watch](https://www.youtube.com/watch?v=hd7CGLe3-eg) | 2026-02-03 |
 
 ---
 

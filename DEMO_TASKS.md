@@ -123,7 +123,9 @@ Building an automated demo recording system for Future Buddy.
 - [x] **D.6.2.2** Upload #002 - Multiplayer Sync (horizontal + shorts)
   - Horizontal: https://www.youtube.com/watch?v=tRiBjE4Wzus
   - Shorts: https://www.youtube.com/watch?v=c6cUCa4RYQM
-- [ ] **D.6.2.3** Upload #003 - Camera Controls (horizontal + shorts)
+- [x] **D.6.2.3** Upload #003 - Camera Controls (horizontal + shorts)
+  - Horizontal: https://www.youtube.com/watch?v=tgSbrSCpEGk
+  - Shorts: https://www.youtube.com/watch?v=hd7CGLe3-eg
 
 ### D.6.3 GitHub Documentation
 - [x] **D.6.3.1** Update DEMOS.md with video links (in progress, #001 added)
