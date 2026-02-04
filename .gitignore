@@ -17,3 +17,6 @@ __pycache__/
 recordings/horizontal/
 recordings/shorts/
 recordings/voiceovers/
+
+# VTuber model files (large)
+vtuber/wizard/

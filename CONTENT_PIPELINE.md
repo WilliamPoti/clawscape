@@ -43,6 +43,7 @@ with open("voiceover.mp3", "wb") as f:
 
 - **Model**: Wizard Live2D
 - **Source**: https://booth.pm/en/items/7498022
+- **Local Path**: `vtuber/wizard/wizard.model3.json`
 - **Cost**: 2,500 JPY (~$17)
 - **Features**: Multiple expressions, tear animations, hat-off state
 
@@ -51,7 +52,8 @@ with open("voiceover.mp3", "wb") as f:
 1. Open VTube Studio
 2. Click person icon (top left)
 3. Click "Add Model"
-4. Select the `.model3.json` file from downloaded model
+4. Navigate to `clawscape/vtuber/wizard/`
+5. Select `wizard.model3.json`
 
 ---
 
