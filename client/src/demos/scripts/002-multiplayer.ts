@@ -1,78 +1,100 @@
-// Demo #003 - Multiplayer Sync
-// Shows other players joining and moving
+// Demo #002 - Multiplayer Sync
+// Shows other players joining, moving, and disconnecting
 
 import { DemoScript } from '../types.js';
 
 export const multiplayerDemo: DemoScript = {
   name: 'multiplayer',
-  description: 'Multiplayer - other players visible',
+  description: 'Real-time multiplayer - players join, move, and disconnect',
   actions: [
+    // Header intro
     {
       type: 'wait',
       params: {},
       duration: 1000,
-      caption: 'Multiplayer sync'
+      header: 'Real-Time Multiplayer'
     },
+
+    // Player 2 joins
     {
       type: 'spawn_player',
-      params: { id: 100, x: 5, z: 0, name: 'Player 2' },
-      duration: 500,
-      caption: 'Another player joins'
+      params: { id: 100, x: 4, z: 0, name: 'Player 2' },
+      duration: 800,
+      caption: '👤 Player 2 joins'
     },
     {
       type: 'move_other',
-      params: { id: 100, x: 5, z: 4 },
-      duration: 2000,
-      caption: 'Player 2 moves'
+      params: { id: 100, x: 4, z: 3 },
+      duration: 1500,
+      caption: '👤 Player 2 moves'
     },
+
+    // Player 3 joins
     {
       type: 'spawn_player',
       params: { id: 101, x: -3, z: 0, name: 'Player 3' },
-      duration: 500,
-      caption: 'Player 3 joins'
-    },
-    {
-      type: 'move',
-      params: { x: 2, z: 3 },
-      caption: 'You walk toward them'
+      duration: 800,
+      caption: '👤 Player 3 joins'
     },
     {
       type: 'move_other',
-      params: { id: 101, x: 0, z: 3 },
-      duration: 2000,
-      caption: 'Player 3 approaches'
+      params: { id: 101, x: -2, z: 2 },
+      duration: 1200,
+      caption: '👤 Player 3 moves'
     },
+
+    // You move toward them
+    {
+      type: 'move',
+      params: { x: 1, z: 2 },
+      caption: '🎮 You approach'
+    },
+
+    // Camera pan to see everyone
     {
       type: 'camera_rotate',
-      params: { angle: 90 },
+      params: { angle: 45 },
       duration: 600,
-      caption: 'Rotate to see everyone'
+      header: 'Synchronized Movement',
+      caption: '📷 Rotate camera'
     },
     {
       type: 'wait',
       params: {},
-      duration: 1000
+      duration: 800
     },
+
+    // Players leave
     {
       type: 'remove_player',
       params: { id: 100 },
-      duration: 500,
-      caption: 'Player 2 disconnects'
+      duration: 600,
+      header: 'Connection Handling',
+      caption: '👋 Player 2 disconnects'
     },
     {
       type: 'wait',
       params: {},
-      duration: 500
+      duration: 600
     },
     {
       type: 'remove_player',
       params: { id: 101 },
-      duration: 300
+      duration: 600,
+      caption: '👋 Player 3 disconnects'
     },
+
+    // Reset camera
     {
       type: 'camera_rotate',
       params: { angle: 0 },
-      duration: 600
+      duration: 500,
+      header: ''
+    },
+    {
+      type: 'wait',
+      params: {},
+      duration: 300
     }
   ]
 };
