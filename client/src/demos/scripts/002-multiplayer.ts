@@ -1,5 +1,6 @@
 // Demo #002 - Multiplayer Sync
 // Shows other players joining, moving, and disconnecting
+// NOTE: Keep all action within x: -2 to +2 range for 9:16 Shorts visibility
 
 import { DemoScript } from '../types.js';
 
@@ -15,30 +16,30 @@ export const multiplayerDemo: DemoScript = {
       header: 'Real-Time Multiplayer'
     },
 
-    // Player 2 joins
+    // Player 2 joins - spawn close to center
     {
       type: 'spawn_player',
-      params: { id: 100, x: 4, z: 0, name: 'Player 2' },
+      params: { id: 100, x: 1, z: -1, name: 'Player 2' },
       duration: 800,
       caption: '👤 Player 2 joins'
     },
     {
       type: 'move_other',
-      params: { id: 100, x: 4, z: 3 },
+      params: { id: 100, x: 2, z: 2 },
       duration: 1500,
       caption: '👤 Player 2 moves'
     },
 
-    // Player 3 joins
+    // Player 3 joins - also close to center
     {
       type: 'spawn_player',
-      params: { id: 101, x: -3, z: 0, name: 'Player 3' },
+      params: { id: 101, x: -1, z: -1, name: 'Player 3' },
       duration: 800,
       caption: '👤 Player 3 joins'
     },
     {
       type: 'move_other',
-      params: { id: 101, x: -2, z: 2 },
+      params: { id: 101, x: -1, z: 2 },
       duration: 1200,
       caption: '👤 Player 3 moves'
     },
@@ -46,22 +47,16 @@ export const multiplayerDemo: DemoScript = {
     // You move toward them
     {
       type: 'move',
-      params: { x: 1, z: 2 },
+      params: { x: 0, z: 2 },
+      header: 'Synchronized Movement',
       caption: '🎮 You approach'
     },
 
-    // Camera pan to see everyone
-    {
-      type: 'camera_rotate',
-      params: { angle: 45 },
-      duration: 600,
-      header: 'Synchronized Movement',
-      caption: '📷 Rotate camera'
-    },
+    // Brief pause to show all 3 together
     {
       type: 'wait',
       params: {},
-      duration: 800
+      duration: 1000
     },
 
     // Players leave
@@ -84,17 +79,12 @@ export const multiplayerDemo: DemoScript = {
       caption: '👋 Player 3 disconnects'
     },
 
-    // Reset camera
-    {
-      type: 'camera_rotate',
-      params: { angle: 0 },
-      duration: 500,
-      header: ''
-    },
+    // End
     {
       type: 'wait',
       params: {},
-      duration: 300
+      duration: 300,
+      header: ''
     }
   ]
 };
