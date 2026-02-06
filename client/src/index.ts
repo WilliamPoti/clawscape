@@ -1,151 +1,115 @@
 import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import {
-  TILE_SIZE,
-  CHUNK_SIZE,
-  TileTexture,
-  WorldMap,
-  PlayerUpdate,
-  NetworkMessage
-} from '@clawscape/shared';
+import { TILE_SIZE, PlayerUpdate, MapSquare, UnderlayConfig, OverlayConfig, EnvironmentConfig, LocConfig } from '@clawscape/shared';
+import { Renderer, GameCamera, SceneManager, TerrainRenderer, LightingSystem, AtmosphereSystem, WaterSystem, ModelSystem } from './engine/index.js';
+import { PlayerController, OtherPlayersManager, World, Pathfinder } from './game/index.js';
+import type { TilePosition, OtherPlayer } from './game/index.js';
+import { NetworkClient } from './net/index.js';
 import { DemoRunner, DemoRecorder, getDemoScript, DemoGameControls } from './demos/index.js';
 import { exportLogoComposition } from './demos/exportLogo.js';
 
-// ============================================
-// Future Buddy Client - Phase 1: World Map System
-// ============================================
-
-const WALK_SPEED = 2.5;
-const RUN_SPEED = 5;
 const SERVER_URL = 'ws://localhost:3000';
-const RENDER_DISTANCE = 2; // chunks
-
-// Tile colors - tinted to complement logo palette
-const TILE_COLORS: Record<TileTexture, number> = {
-  [TileTexture.GRASS_LIGHT]: 0x3A6B5A,  // Teal-green
-  [TileTexture.GRASS_DARK]: 0x2A5A4A,   // Darker teal-green
-  [TileTexture.DIRT]: 0x5A4050,         // Purple-brown
-  [TileTexture.STONE]: 0x5A4A6B,        // Purple-gray
-  [TileTexture.WATER]: 0x00F0FF,        // Electric Cyan
-  [TileTexture.SAND]: 0xAAA060,         // Muted yellow
-  [TileTexture.WOOD]: 0x6B3D5A,         // Purple-brown
-};
-
-interface TilePosition {
-  x: number;
-  z: number;
-}
-
-interface OtherPlayer {
-  id: number;
-  mesh: THREE.Mesh;
-  targetPosition: THREE.Vector3;
-  username: string;
-}
-
-interface TileMesh {
-  mesh: THREE.Mesh;
-  obstacle?: THREE.Mesh;
-}
 
 class Game {
-  private scene: THREE.Scene;
-  private camera: THREE.PerspectiveCamera;
-  private renderer: THREE.WebGLRenderer;
-  private composer: EffectComposer;
+  // Engine
+  private sceneManager: SceneManager;
+  private gameCamera: GameCamera;
+  private gameRenderer: Renderer;
+  private terrainRenderer: TerrainRenderer;
+  private lighting: LightingSystem;
+  private atmosphere: AtmosphereSystem;
+  private water: WaterSystem;
+  private models: ModelSystem;
   private clock: THREE.Clock;
 
-  // World map
-  private worldMap: WorldMap;
-  private loadedTiles: Map<string, TileMesh> = new Map();
+  // Game
+  private player: PlayerController;
+  private otherPlayers: OtherPlayersManager;
+  private world: World;
 
   // Network
-  private socket: WebSocket | null = null;
+  private network: NetworkClient;
   private playerId: number = -1;
-  private connected: boolean = false;
-
-  // Player
-  private player: THREE.Mesh;
-  private path: TilePosition[] = [];
-  private currentTarget: TilePosition | null = null;
-  private isRunning: boolean = false;
-
-  // Other players
-  private otherPlayers: Map<number, OtherPlayer> = new Map();
 
   // UI
   private clickMarker: THREE.Mesh;
   private statusText: HTMLDivElement;
 
-  // Camera
-  private cameraAngle: number = 0;
-  private cameraZoom: number = 800;
-  private targetCameraAngle: number = 0;
-  private targetCameraZoom: number = 800;
-  private readonly MIN_ZOOM = 400;
-  private readonly MAX_ZOOM = 1500;
-
   // Demo system
   private demoRunner: DemoRunner | null = null;
   private demoRecorder: DemoRecorder | null = null;
   private fakePlayers: Map<number, OtherPlayer> = new Map();
-
-  // Recording
   private recordingLogo: HTMLImageElement | null = null;
 
   constructor() {
-    this.worldMap = new WorldMap();
-
-    // Scene - deep purple void background matching logo palette
-    this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x1a0033);
-
-    // Camera
-    this.camera = new THREE.PerspectiveCamera(
-      50,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      10000
-    );
-    this.camera.position.set(0, 800, 800);
-    this.camera.lookAt(0, 0, 0);
-
-    // Renderer
+    // Engine setup
+    this.sceneManager = new SceneManager();
+    this.gameCamera = new GameCamera();
     const canvas = document.getElementById('game') as HTMLCanvasElement;
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.2;
-
-    // Post-processing for dreamy glow effect
-    this.composer = new EffectComposer(this.renderer);
-    this.composer.addPass(new RenderPass(this.scene, this.camera));
-    const bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.8,   // bloom strength
-      0.4,   // radius
-      0.2    // threshold - lower = more glow
-    );
-    this.composer.addPass(bloomPass);
-
-    // Dreamy fog matching palette
-    this.scene.fog = new THREE.FogExp2(0x1a0033, 0.0004);
-
-    // Clock
+    this.gameRenderer = new Renderer(canvas, this.sceneManager.scene, this.gameCamera.camera);
     this.clock = new THREE.Clock();
 
-    // Create world - colors from logo palette
-    this.player = this.createPlayer(0xFF6EC7);  // Sunset Pink
-    this.clickMarker = this.createClickMarker(0xFFEE00);  // Solar Yellow
-    this.setupLighting();
-    this.setupTikiTorches();
+    // Lighting system (shadows + point lights)
+    this.lighting = new LightingSystem(this.sceneManager.scene, this.gameRenderer.renderer);
+
+    // Atmosphere system (fog + sky)
+    this.atmosphere = new AtmosphereSystem(this.sceneManager.scene);
+
+    // Water system
+    this.water = new WaterSystem(this.sceneManager.scene);
+
+    // Model system (glTF loader + placeholders)
+    this.models = new ModelSystem(this.sceneManager.scene);
+
+    // Terrain renderer (RLHD-quality)
+    this.terrainRenderer = new TerrainRenderer(this.sceneManager.scene);
+
+    // Game setup
+    this.player = new PlayerController(this.sceneManager.scene);
+    this.otherPlayers = new OtherPlayersManager(this.sceneManager.scene);
+    this.world = new World(this.sceneManager.scene);
+    this.clickMarker = this.createClickMarker(0xFFEE00);
     this.statusText = this.createStatusUI();
 
-    // Initial tile load
-    this.updateLoadedTiles();
+    // Initial tile load (legacy world for demo compat)
+    this.world.updateLoadedTiles(this.player.mesh.position.x, this.player.mesh.position.z);
+
+    // Load RLHD terrain
+    this.loadTerrain();
+
+    // Network
+    this.network = new NetworkClient(SERVER_URL, {
+      onAuth: (id) => {
+        this.playerId = id;
+        console.log('Assigned player ID:', id);
+        this.updateStatus();
+      },
+      onPlayerUpdate: (update) => {
+        if (update.id !== this.playerId) {
+          this.otherPlayers.updateTarget(update.id, update.position);
+        }
+      },
+      onPlayerJoin: (id, position) => {
+        if (id !== this.playerId) {
+          this.otherPlayers.add(id, position);
+          console.log(`Player ${id} joined`);
+          this.updateStatus();
+        }
+      },
+      onPlayerLeave: (id) => {
+        this.otherPlayers.remove(id);
+        console.log(`Player ${id} left`);
+        this.updateStatus();
+      },
+      onPlayersList: (players) => {
+        for (const p of players) {
+          if (p.id !== this.playerId) {
+            this.otherPlayers.add(p.id, p.position);
+          }
+        }
+      },
+      onConnect: () => this.updateStatus(),
+      onDisconnect: () => this.updateStatus(),
+    });
 
     // Events
     window.addEventListener('resize', () => this.onResize());
@@ -155,14 +119,103 @@ class Game {
     window.addEventListener('keyup', (e) => this.onKeyUp(e));
 
     // Connect to server
-    this.connect();
+    this.network.connect();
 
     // Initialize demo system
     this.initDemoSystem();
 
     // Start
     this.animate();
-    console.log('Future Buddy initialized - World Map System');
+    console.log('ClawScape initialized');
+  }
+
+  // ==================
+  // Terrain
+  // ==================
+
+  private async loadTerrain(): Promise<void> {
+    try {
+      // Load configs
+      const [underlaysResp, overlaysResp, envsResp, locsResp] = await Promise.all([
+        fetch('/assets/configs/underlays.json'),
+        fetch('/assets/configs/overlays.json'),
+        fetch('/assets/configs/environments.json'),
+        fetch('/assets/configs/locs.json'),
+      ]);
+      const underlays: UnderlayConfig[] = await underlaysResp.json();
+      const overlays: OverlayConfig[] = await overlaysResp.json();
+      const environments: EnvironmentConfig[] = await envsResp.json();
+      const locs: LocConfig[] = await locsResp.json();
+      this.terrainRenderer.setFloorTypes(underlays, overlays);
+      this.models.setLocConfigs(locs);
+
+      // Apply default environment
+      const defaultEnv = environments.find(e => e.id === 'overworld_day');
+      if (defaultEnv) {
+        this.lighting.setEnvironment(defaultEnv);
+        this.atmosphere.setEnvironment(defaultEnv);
+        this.terrainRenderer.setEnvironment(defaultEnv);
+      }
+
+      // Load starter map
+      const mapResp = await fetch('/assets/maps/50-50.json');
+      const mapSquare: MapSquare = await mapResp.json();
+      this.terrainRenderer.loadMapSquare(mapSquare);
+
+      // Create water from map data
+      this.createWaterFromMap(mapSquare);
+
+      // Place objects (trees, rocks, etc.)
+      await this.models.placeLocsFromMap(mapSquare);
+
+      console.log(`Loaded terrain: region ${mapSquare.regionX},${mapSquare.regionY}`);
+    } catch (e) {
+      console.warn('Failed to load terrain (assets not found, using legacy tiles):', e);
+    }
+  }
+
+  private createWaterFromMap(mapSquare: MapSquare): void {
+    const tiles = mapSquare.tiles[0]; // ground level
+    if (!tiles) return;
+
+    const TILE = 128;
+    const offsetX = mapSquare.regionX * 64 * TILE;
+    const offsetZ = mapSquare.regionY * 64 * TILE;
+
+    // Find contiguous water regions using flood fill
+    const visited = new Set<string>();
+    for (let y = 0; y < 64; y++) {
+      for (let x = 0; x < 64; x++) {
+        const key = `${x},${y}`;
+        if (visited.has(key)) continue;
+        if ((tiles[y][x].flags & 0x02) === 0) continue; // not water
+
+        // Flood fill to find water region bounds
+        let minX = x, maxX = x, minY = y, maxY = y;
+        const queue: [number, number][] = [[x, y]];
+        while (queue.length > 0) {
+          const [cx, cy] = queue.pop()!;
+          const k = `${cx},${cy}`;
+          if (visited.has(k)) continue;
+          if (cx < 0 || cx >= 64 || cy < 0 || cy >= 64) continue;
+          if ((tiles[cy][cx].flags & 0x02) === 0) continue;
+
+          visited.add(k);
+          minX = Math.min(minX, cx);
+          maxX = Math.max(maxX, cx);
+          minY = Math.min(minY, cy);
+          maxY = Math.max(maxY, cy);
+          queue.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
+        }
+
+        // Create water plane for this region
+        const wx = offsetX + minX * TILE;
+        const wz = offsetZ + minY * TILE;
+        const ww = (maxX - minX + 1) * TILE;
+        const wh = (maxY - minY + 1) * TILE;
+        this.water.addWaterPlane(wx, wz, ww, wh, -5);
+      }
+    }
   }
 
   // ==================
@@ -170,24 +223,21 @@ class Game {
   // ==================
 
   private initDemoSystem(): void {
-    // Create demo controls interface
     const controls: DemoGameControls = {
       setPlayerTarget: (x, z) => this.setPlayerTarget(x, z),
-      getPlayerTilePosition: () => this.getPlayerTilePosition(),
-      isPlayerMoving: () => this.isPlayerMoving(),
-      setCameraAngle: (angle) => { this.targetCameraAngle = angle; },
-      setCameraZoom: (zoom) => { this.targetCameraZoom = zoom; },
+      getPlayerTilePosition: () => this.player.getTilePosition(),
+      isPlayerMoving: () => this.player.isMoving(),
+      setCameraAngle: (angle) => this.gameCamera.setTargetAngle(angle),
+      setCameraZoom: (zoom) => this.gameCamera.setTargetZoom(zoom),
       createFakePlayer: (id, x, z, name) => this.createFakePlayer(id, x, z, name),
       moveFakePlayer: (id, x, z) => this.moveFakePlayer(id, x, z),
       removeFakePlayer: (id) => this.removeFakePlayer(id),
-      showBlockedFeedback: (x, z) => this.showBlockedFeedback(x, z),
-      setRunning: (running) => { this.isRunning = running; },
+      showBlockedFeedback: (_x, _z) => { /* removed */ },
+      setRunning: (running) => { this.player.isRunning = running; },
     };
 
     this.demoRunner = new DemoRunner(controls);
     this.demoRecorder = new DemoRecorder();
-
-    // Check URL for demo parameter
     this.checkDemoUrl();
   }
 
@@ -195,7 +245,6 @@ class Game {
     const params = new URLSearchParams(window.location.search);
     const demoName = params.get('demo');
     const shouldRecord = params.has('record');
-    const positionMode = params.has('position');
     const exportLogo = params.has('export-logo');
 
     if (exportLogo) {
@@ -203,304 +252,27 @@ class Game {
       return;
     }
 
-    if (positionMode) {
-      this.initPositionMode();
-      return;
-    }
-
     if (demoName) {
-      // Small delay to ensure everything is initialized
       setTimeout(() => {
         this.runDemo(demoName, shouldRecord);
       }, 500);
     }
   }
 
-  private initPositionMode(): void {
-    console.log('Position mode - drag logo/text, use scroll to resize, Tab to switch');
-
-    // Create 9:16 frame overlay
-    const frame = document.createElement('div');
-    frame.id = 'position-frame';
-    const frameHeight = window.innerHeight * 0.9;
-    const frameWidth = frameHeight * (9 / 16);
-    frame.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: ${frameWidth}px;
-      height: ${frameHeight}px;
-      border: 3px dashed #FFD700;
-      pointer-events: none;
-      z-index: 998;
-      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-    `;
-    document.body.appendChild(frame);
-
-    // State
-    let activeElement: 'logo' | 'future' | 'buddy' = 'logo';
-    let logoSize = 67;
-    let logoX = window.innerWidth / 2 + 191;
-    let logoY = window.innerHeight / 2 - 367;
-    let futureSize = 13;
-    let futureX = window.innerWidth / 2 + 191;
-    let futureY = window.innerHeight / 2 - 320;
-    let buddySize = 13;
-    let buddyX = window.innerWidth / 2 + 191;
-    let buddyY = window.innerHeight / 2 - 300;
-
-    // Create draggable logo
-    const logo = document.createElement('img');
-    logo.id = 'position-logo';
-    logo.src = '/assets/logo.png';
-
-    const updateLogo = () => {
-      logo.style.cssText = `
-        position: fixed;
-        left: ${logoX}px;
-        top: ${logoY}px;
-        transform: translate(-50%, -50%);
-        width: ${logoSize}px;
-        height: auto;
-        cursor: grab;
-        z-index: 1000;
-        filter: drop-shadow(0 0 20px rgba(0, 240, 255, 0.6))
-                drop-shadow(0 0 40px rgba(136, 0, 255, 0.4));
-        outline: ${activeElement === 'logo' ? '3px solid #FFD700' : 'none'};
-      `;
-    };
-    updateLogo();
-    document.body.appendChild(logo);
-
-    // Create draggable "FUTURE" text
-    const futureText = document.createElement('div');
-    futureText.id = 'position-future';
-    futureText.innerHTML = 'FUTURE';
-
-    const updateFuture = () => {
-      futureText.style.cssText = `
-        position: fixed;
-        left: ${futureX}px;
-        top: ${futureY}px;
-        transform: translate(-50%, -50%);
-        font-family: 'Bungee', sans-serif;
-        font-size: ${futureSize}px;
-        text-align: center;
-        color: #71FF00;
-        -webkit-text-stroke: 2px #000000;
-        paint-order: stroke fill;
-        text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 15px rgba(113, 255, 0, 0.8);
-        cursor: grab;
-        z-index: 1000;
-        outline: ${activeElement === 'future' ? '3px solid #FFD700' : 'none'};
-        padding: 5px;
-      `;
-    };
-    updateFuture();
-    document.body.appendChild(futureText);
-
-    // Create draggable "BUDDY" text
-    const buddyText = document.createElement('div');
-    buddyText.id = 'position-buddy';
-    buddyText.innerHTML = 'BUDDY';
-
-    const updateBuddy = () => {
-      buddyText.style.cssText = `
-        position: fixed;
-        left: ${buddyX}px;
-        top: ${buddyY}px;
-        transform: translate(-50%, -50%);
-        font-family: 'Bungee', sans-serif;
-        font-size: ${buddySize}px;
-        text-align: center;
-        color: #71FF00;
-        -webkit-text-stroke: 2px #000000;
-        paint-order: stroke fill;
-        text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 15px rgba(113, 255, 0, 0.8);
-        cursor: grab;
-        z-index: 1000;
-        outline: ${activeElement === 'buddy' ? '3px solid #FFD700' : 'none'};
-        padding: 5px;
-      `;
-    };
-    updateBuddy();
-    document.body.appendChild(buddyText);
-
-    // Create info panel
-    const info = document.createElement('div');
-    info.style.cssText = `
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      background: rgba(16, 8, 32, 0.9);
-      border: 2px solid #FFD700;
-      padding: 15px;
-      color: #00F0FF;
-      font-family: monospace;
-      font-size: 14px;
-      z-index: 1001;
-      border-radius: 6px;
-    `;
-    const updateInfo = () => {
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-      const logoOffsetX = Math.round(logoX - centerX);
-      const logoOffsetY = Math.round(logoY - centerY);
-      const futureOffsetX = Math.round(futureX - centerX);
-      const futureOffsetY = Math.round(futureY - centerY);
-      const buddyOffsetX = Math.round(buddyX - centerX);
-      const buddyOffsetY = Math.round(buddyY - centerY);
-      info.innerHTML = `
-        <div style="color: #FFD700; margin-bottom: 10px;">POSITION MODE</div>
-        <div style="color: ${activeElement === 'logo' ? '#71FF00' : '#888'};">
-          [LOGO] Size: ${logoSize}px, X: ${logoOffsetX}, Y: ${logoOffsetY}
-        </div>
-        <div style="color: ${activeElement === 'future' ? '#71FF00' : '#888'};">
-          [FUTURE] Size: ${futureSize}px, X: ${futureOffsetX}, Y: ${futureOffsetY}
-        </div>
-        <div style="color: ${activeElement === 'buddy' ? '#71FF00' : '#888'};">
-          [BUDDY] Size: ${buddySize}px, X: ${buddyOffsetX}, Y: ${buddyOffsetY}
-        </div>
-        <div style="margin-top: 10px; color: #CC00FF;">
-          Tab = switch | Drag = move | Scroll = resize
-        </div>
-        <button id="copy-all-btn" style="
-          margin-top: 10px;
-          padding: 6px 12px;
-          background: #8800FF;
-          border: 2px solid #FFD700;
-          color: white;
-          cursor: pointer;
-          border-radius: 4px;
-          font-weight: bold;
-        ">Copy All</button>
-      `;
-      info.querySelector('#copy-all-btn')?.addEventListener('click', () => {
-        const values = 'Logo - Size: ' + logoSize + 'px, X: ' + logoOffsetX + 'px, Y: ' + logoOffsetY + 'px\\n' +
-          'FUTURE - Size: ' + futureSize + 'px, X: ' + futureOffsetX + 'px, Y: ' + futureOffsetY + 'px\\n' +
-          'BUDDY - Size: ' + buddySize + 'px, X: ' + buddyOffsetX + 'px, Y: ' + buddyOffsetY + 'px';
-        navigator.clipboard.writeText(values);
-      });
-    };
-    updateInfo();
-    document.body.appendChild(info);
-
-    // Tab to switch
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        if (activeElement === 'logo') activeElement = 'future';
-        else if (activeElement === 'future') activeElement = 'buddy';
-        else activeElement = 'logo';
-        updateLogo();
-        updateFuture();
-        updateBuddy();
-        updateInfo();
-      }
-    });
-
-    // Drag handling
-    let isDragging = false;
-    let dragTarget: 'logo' | 'future' | 'buddy' | null = null;
-
-    logo.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      dragTarget = 'logo';
-      activeElement = 'logo';
-      logo.style.cursor = 'grabbing';
-      updateLogo();
-      updateFuture();
-      updateBuddy();
-      updateInfo();
-      e.preventDefault();
-    });
-
-    futureText.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      dragTarget = 'future';
-      activeElement = 'future';
-      futureText.style.cursor = 'grabbing';
-      updateLogo();
-      updateFuture();
-      updateBuddy();
-      updateInfo();
-      e.preventDefault();
-    });
-
-    buddyText.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      dragTarget = 'buddy';
-      activeElement = 'buddy';
-      buddyText.style.cursor = 'grabbing';
-      updateLogo();
-      updateFuture();
-      updateBuddy();
-      updateInfo();
-      e.preventDefault();
-    });
-
-    window.addEventListener('mousemove', (e) => {
-      if (isDragging) {
-        if (dragTarget === 'logo') {
-          logoX = e.clientX;
-          logoY = e.clientY;
-          updateLogo();
-        } else if (dragTarget === 'future') {
-          futureX = e.clientX;
-          futureY = e.clientY;
-          updateFuture();
-        } else if (dragTarget === 'buddy') {
-          buddyX = e.clientX;
-          buddyY = e.clientY;
-          updateBuddy();
-        }
-        updateInfo();
-      }
-    });
-
-    window.addEventListener('mouseup', () => {
-      isDragging = false;
-      dragTarget = null;
-      logo.style.cursor = 'grab';
-      futureText.style.cursor = 'grab';
-      buddyText.style.cursor = 'grab';
-    });
-
-    // Scroll to resize active element
-    window.addEventListener('wheel', (e) => {
-      if (activeElement === 'logo') {
-        logoSize = Math.max(30, Math.min(500, logoSize - e.deltaY * 0.5));
-        updateLogo();
-      } else if (activeElement === 'future') {
-        futureSize = Math.max(8, Math.min(100, futureSize - e.deltaY * 0.1));
-        updateFuture();
-      } else if (activeElement === 'buddy') {
-        buddySize = Math.max(8, Math.min(100, buddySize - e.deltaY * 0.1));
-        updateBuddy();
-      }
-      updateInfo();
-      e.preventDefault();
-    }, { passive: false });
-  }
-
   runDemo(name: string, record: boolean = false): void {
     const script = getDemoScript(name);
     if (!script) {
       console.error(`Demo not found: ${name}`);
-      console.log('Available demos:', ['movement', 'multiplayer', 'camera', 'pathfinding']);
       return;
     }
 
     console.log(`Running demo: ${name}${record ? ' (recording both formats)' : ''}`);
 
     if (record && this.demoRecorder) {
-      // Load logo for recording overlay
       this.recordingLogo = new Image();
       this.recordingLogo.src = '/assets/logo.png';
 
-      // Start dual-format recording with overlay config
-      this.demoRecorder.startRecording(this.renderer.domElement, 60, {
+      this.demoRecorder.startRecording(this.gameRenderer.domElement, 60, {
         logo: this.recordingLogo,
         getHeader: () => this.demoRunner?.getHeader() || '',
         getCaption: () => this.demoRunner?.getCaption() || ''
@@ -508,7 +280,6 @@ class Game {
     }
 
     this.demoRunner?.start(script, () => {
-      // On complete
       if (record && this.demoRecorder) {
         this.demoRecorder.stopAndDownload(name);
         this.recordingLogo = null;
@@ -518,31 +289,21 @@ class Game {
   }
 
   private setPlayerTarget(x: number, z: number): void {
-    const currentTile = this.getPlayerTilePosition();
-    this.path = this.calculatePath(currentTile, { x, z });
-    if (this.path.length > 0) {
+    const currentTile = this.player.getTilePosition();
+    const path = Pathfinder.calculatePath(currentTile, { x, z });
+    if (path.length > 0) {
+      this.player.setPath(path);
       this.clickMarker.position.x = x * TILE_SIZE;
       this.clickMarker.position.z = z * TILE_SIZE;
       this.clickMarker.visible = true;
     }
   }
 
-  private getPlayerTilePosition(): { x: number; z: number } {
-    return {
-      x: Math.round(this.player.position.x / TILE_SIZE),
-      z: Math.round(this.player.position.z / TILE_SIZE)
-    };
-  }
-
-  private isPlayerMoving(): boolean {
-    return this.currentTarget !== null || this.path.length > 0;
-  }
-
   private createFakePlayer(id: number, x: number, z: number, name: string): THREE.Mesh {
-    const mesh = this.createPlayer(0x00F0FF)  // Electric Cyan;
+    const mesh = PlayerController.createOtherPlayerMesh(this.sceneManager.scene);
     mesh.position.set(x * TILE_SIZE, 60, z * TILE_SIZE);
 
-    const label = this.createPlayerLabel(name);
+    const label = PlayerController.createPlayerLabel(name);
     mesh.add(label);
 
     this.fakePlayers.set(id, {
@@ -565,134 +326,34 @@ class Game {
   private removeFakePlayer(id: number): void {
     const player = this.fakePlayers.get(id);
     if (player) {
-      this.scene.remove(player.mesh);
+      this.sceneManager.remove(player.mesh);
       this.fakePlayers.delete(id);
     }
-  }
-
-  private showBlockedFeedback(x: number, z: number): void {
-    // Blocked feedback removed
   }
 
   isInDemoMode(): boolean {
     return this.demoRunner?.isRunning() ?? false;
   }
 
-  private getTileKey(x: number, z: number): string {
-    return `${x},${z}`;
-  }
+  // ==================
+  // UI
+  // ==================
 
-  private updateLoadedTiles(): void {
-    const playerTileX = Math.floor(this.player.position.x / TILE_SIZE);
-    const playerTileZ = Math.floor(this.player.position.z / TILE_SIZE);
-    const radius = RENDER_DISTANCE * CHUNK_SIZE;
-
-    // Load tiles around player
-    for (let z = playerTileZ - radius; z <= playerTileZ + radius; z++) {
-      for (let x = playerTileX - radius; x <= playerTileX + radius; x++) {
-        const key = this.getTileKey(x, z);
-        if (!this.loadedTiles.has(key)) {
-          this.loadTile(x, z);
-        }
-      }
-    }
-
-    // Unload distant tiles
-    for (const [key, tileMesh] of this.loadedTiles) {
-      const [tx, tz] = key.split(',').map(Number);
-      if (
-        Math.abs(tx - playerTileX) > radius + CHUNK_SIZE ||
-        Math.abs(tz - playerTileZ) > radius + CHUNK_SIZE
-      ) {
-        this.scene.remove(tileMesh.mesh);
-        if (tileMesh.obstacle) this.scene.remove(tileMesh.obstacle);
-        this.loadedTiles.delete(key);
-      }
-    }
-  }
-
-  private loadTile(tileX: number, tileZ: number): void {
-    const tile = this.worldMap.getTile(tileX, tileZ);
-    if (!tile) return;
-
-    const geometry = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
-
-    // Simple checker pattern for demo
-    const isLight = (tileX + tileZ) % 2 === 0;
-    const color = isLight ? 0x2A5A4A : 0x1F4A3A;  // Teal checker pattern
-
-    const material = new THREE.MeshStandardMaterial({
+  private createClickMarker(color: number): THREE.Mesh {
+    const geometry = new THREE.RingGeometry(20, 35, 4);
+    const material = new THREE.MeshBasicMaterial({
       color,
-      emissive: color,
-      emissiveIntensity: 0.05,
-      metalness: 0.3,
-      roughness: 0.7
-    });
-
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(tileX * TILE_SIZE, 0, tileZ * TILE_SIZE);  // Flat ground
-    this.scene.add(mesh);
-
-    const tileMesh: TileMesh = { mesh };
-
-    this.loadedTiles.set(this.getTileKey(tileX, tileZ), tileMesh);
-  }
-
-  private createTikiTorch(x: number, z: number): void {
-    // Pole
-    const poleGeo = new THREE.CylinderGeometry(8, 12, 150, 8);
-    const poleMat = new THREE.MeshStandardMaterial({
-      color: 0x4A3020,
-      roughness: 0.9,
-      metalness: 0.1
-    });
-    const pole = new THREE.Mesh(poleGeo, poleMat);
-    pole.position.set(x, 75, z);
-    this.scene.add(pole);
-
-    // Torch head
-    const headGeo = new THREE.CylinderGeometry(15, 10, 25, 8);
-    const headMat = new THREE.MeshStandardMaterial({
-      color: 0x2A2020,
-      roughness: 0.8
-    });
-    const head = new THREE.Mesh(headGeo, headMat);
-    head.position.set(x, 160, z);
-    this.scene.add(head);
-
-    // Flame (glowing sphere)
-    const flameGeo = new THREE.SphereGeometry(20, 16, 16);
-    const flameMat = new THREE.MeshStandardMaterial({
-      color: 0xFFAA00,
-      emissive: 0xFF6600,
-      emissiveIntensity: 2,
+      side: THREE.DoubleSide,
       transparent: true,
       opacity: 0.9
     });
-    const flame = new THREE.Mesh(flameGeo, flameMat);
-    flame.position.set(x, 185, z);
-    flame.scale.set(1, 1.3, 1);
-    this.scene.add(flame);
-
-    // Point light for the torch
-    const light = new THREE.PointLight(0xFF6600, 1, 400);
-    light.position.set(x, 185, z);
-    this.scene.add(light);
-  }
-
-  private setupTikiTorches(): void {
-    // Place torches in a pattern around the play area
-    const torchPositions = [
-      { x: -3, z: -3 }, { x: 3, z: -3 },
-      { x: -3, z: 3 }, { x: 3, z: 3 },
-      { x: -6, z: 0 }, { x: 6, z: 0 },
-      { x: 0, z: -6 }, { x: 0, z: 6 },
-    ];
-
-    for (const pos of torchPositions) {
-      this.createTikiTorch(pos.x * TILE_SIZE, pos.z * TILE_SIZE);
-    }
+    const marker = new THREE.Mesh(geometry, material);
+    marker.rotation.x = -Math.PI / 2;
+    marker.rotation.z = Math.PI / 4;
+    marker.position.y = 2;
+    marker.visible = false;
+    this.sceneManager.add(marker);
+    return marker;
   }
 
   private createStatusUI(): HTMLDivElement {
@@ -715,220 +376,33 @@ class Game {
 
   private updateStatus(): void {
     const playerCount = this.otherPlayers.size + 1;
-    const tileX = Math.round(this.player.position.x / TILE_SIZE);
-    const tileZ = Math.round(this.player.position.z / TILE_SIZE);
+    const tile = this.player.getTilePosition();
     this.statusText.innerHTML = `
-      ${this.connected ? '🟢 Connected' : '🔴 Disconnected'}<br>
+      ${this.network.isConnected() ? '🟢 Connected' : '🔴 Disconnected'}<br>
       Player ID: ${this.playerId}<br>
       Players online: ${playerCount}<br>
-      Position: ${tileX}, ${tileZ}<br>
+      Position: ${tile.x}, ${tile.z}<br>
       <br>
       <small>Q/E: Rotate | Scroll: Zoom</small><br>
       <small>SHIFT: Run | Click: Move</small>
     `;
   }
 
-  private connect(): void {
-    this.socket = new WebSocket(SERVER_URL);
-
-    this.socket.onopen = () => {
-      console.log('Connected to server');
-      this.connected = true;
-      this.updateStatus();
-    };
-
-    this.socket.onmessage = (event) => {
-      const message: NetworkMessage = JSON.parse(event.data);
-      this.handleServerMessage(message);
-    };
-
-    this.socket.onclose = () => {
-      console.log('Disconnected from server');
-      this.connected = false;
-      this.updateStatus();
-      setTimeout(() => this.connect(), 3000);
-    };
-
-    this.socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-  }
-
-  private send(type: string, payload: unknown): void {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      const message: NetworkMessage = {
-        type: type as any,
-        payload,
-        timestamp: Date.now()
-      };
-      this.socket.send(JSON.stringify(message));
-    }
-  }
-
-  private handleServerMessage(message: NetworkMessage): void {
-    switch (message.type) {
-      case 'auth':
-        const authData = message.payload as { playerId: number };
-        this.playerId = authData.playerId;
-        console.log('Assigned player ID:', this.playerId);
-        this.updateStatus();
-        break;
-
-      case 'player_update':
-        const update = message.payload as PlayerUpdate;
-        if (update.id !== this.playerId) {
-          this.updateOtherPlayer(update);
-        }
-        break;
-
-      case 'player_join':
-        const joinData = message.payload as { id: number; position: { x: number; y: number } };
-        if (joinData.id !== this.playerId) {
-          this.addOtherPlayer(joinData.id, joinData.position);
-        }
-        break;
-
-      case 'player_leave':
-        const leaveData = message.payload as { id: number };
-        this.removeOtherPlayer(leaveData.id);
-        break;
-
-      case 'players_list':
-        const players = message.payload as Array<{ id: number; position: { x: number; y: number } }>;
-        for (const p of players) {
-          if (p.id !== this.playerId) {
-            this.addOtherPlayer(p.id, p.position);
-          }
-        }
-        break;
-    }
-  }
-
-  private addOtherPlayer(id: number, position: { x: number; y: number }): void {
-    if (this.otherPlayers.has(id)) return;
-
-    const mesh = this.createPlayer(0x00F0FF)  // Electric Cyan;
-    mesh.position.set(position.x * TILE_SIZE, 60, position.y * TILE_SIZE);
-
-    const label = this.createPlayerLabel(`Player ${id}`);
-    mesh.add(label);
-
-    this.otherPlayers.set(id, {
-      id,
-      mesh,
-      targetPosition: mesh.position.clone(),
-      username: `Player ${id}`
-    });
-
-    console.log(`Player ${id} joined`);
-    this.updateStatus();
-  }
-
-  private createPlayerLabel(text: string): THREE.Sprite {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 64;
-    const ctx = canvas.getContext('2d')!;
-    ctx.fillStyle = 'white';
-    ctx.font = 'bold 32px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(text, 128, 40);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.SpriteMaterial({ map: texture });
-    const sprite = new THREE.Sprite(material);
-    sprite.position.y = 100;
-    sprite.scale.set(100, 25, 1);
-    return sprite;
-  }
-
-  private removeOtherPlayer(id: number): void {
-    const player = this.otherPlayers.get(id);
-    if (player) {
-      this.scene.remove(player.mesh);
-      this.otherPlayers.delete(id);
-      console.log(`Player ${id} left`);
-      this.updateStatus();
-    }
-  }
-
-  private updateOtherPlayer(update: PlayerUpdate): void {
-    let player = this.otherPlayers.get(update.id);
-
-    if (!player) {
-      this.addOtherPlayer(update.id, update.position);
-      player = this.otherPlayers.get(update.id);
-    }
-
-    if (player) {
-      player.targetPosition.set(
-        update.position.x * TILE_SIZE,
-        60,
-        update.position.y * TILE_SIZE
-      );
-    }
-  }
-
-  private createPlayer(color: number): THREE.Mesh {
-    const geometry = new THREE.BoxGeometry(60, 120, 60);
-    const material = new THREE.MeshStandardMaterial({
-      color,
-      emissive: color,
-      emissiveIntensity: 0.3,
-      metalness: 0.8,
-      roughness: 0.2
-    });
-    const player = new THREE.Mesh(geometry, material);
-    player.position.set(0, 60, 0);
-    this.scene.add(player);
-    return player;
-  }
-
-  private createClickMarker(color: number): THREE.Mesh {
-    const geometry = new THREE.RingGeometry(20, 35, 4);
-    const material = new THREE.MeshBasicMaterial({
-      color,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.9
-    });
-    const marker = new THREE.Mesh(geometry, material);
-    marker.rotation.x = -Math.PI / 2;
-    marker.rotation.z = Math.PI / 4;
-    marker.position.y = 2;
-    marker.visible = false;
-    this.scene.add(marker);
-    return marker;
-  }
-
-  private setupLighting(): void {
-    // Ambient light with slight cyan tint
-    const ambient = new THREE.AmbientLight(0xAADDFF, 0.5);
-    this.scene.add(ambient);
-
-    // Main light with warm pink/yellow tint
-    const sun = new THREE.DirectionalLight(0xFFEEDD, 0.9);
-    sun.position.set(500, 1000, 500);
-    this.scene.add(sun);
-
-    // Accent light with magenta tint from below
-    const accent = new THREE.DirectionalLight(0xFF6EC7, 0.2);
-    accent.position.set(-300, -200, 300);
-    this.scene.add(accent);
-  }
+  // ==================
+  // Input
+  // ==================
 
   private onClick(event: MouseEvent): void {
-    // Block input during demo
     if (this.isInDemoMode()) return;
 
-    const rect = this.renderer.domElement.getBoundingClientRect();
+    const rect = this.gameRenderer.domElement.getBoundingClientRect();
     const mouse = new THREE.Vector2(
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
       -((event.clientY - rect.top) / rect.height) * 2 + 1
     );
 
     const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(mouse, this.camera);
+    raycaster.setFromCamera(mouse, this.gameCamera.camera);
 
     const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     const target = new THREE.Vector3();
@@ -940,14 +414,11 @@ class Game {
         z: Math.round(target.z / TILE_SIZE)
       };
 
-      const currentTile: TilePosition = {
-        x: Math.round(this.player.position.x / TILE_SIZE),
-        z: Math.round(this.player.position.z / TILE_SIZE)
-      };
+      const currentTile = this.player.getTilePosition();
+      const path = Pathfinder.calculatePath(currentTile, targetTile);
 
-      this.path = this.calculatePath(currentTile, targetTile);
-
-      if (this.path.length > 0) {
+      if (path.length > 0) {
+        this.player.setPath(path);
         this.clickMarker.position.x = targetTile.x * TILE_SIZE;
         this.clickMarker.position.z = targetTile.z * TILE_SIZE;
         this.clickMarker.visible = true;
@@ -955,178 +426,50 @@ class Game {
     }
   }
 
-  private calculatePath(from: TilePosition, to: TilePosition): TilePosition[] {
-    // Simple A* pathfinding
-    const openSet: TilePosition[] = [from];
-    const cameFrom = new Map<string, TilePosition>();
-    const gScore = new Map<string, number>();
-    const fScore = new Map<string, number>();
-
-    const key = (p: TilePosition) => `${p.x},${p.z}`;
-    const heuristic = (a: TilePosition, b: TilePosition) =>
-      Math.abs(a.x - b.x) + Math.abs(a.z - b.z);
-
-    gScore.set(key(from), 0);
-    fScore.set(key(from), heuristic(from, to));
-
-    while (openSet.length > 0) {
-      // Get node with lowest fScore
-      openSet.sort((a, b) => (fScore.get(key(a)) ?? Infinity) - (fScore.get(key(b)) ?? Infinity));
-      const current = openSet.shift()!;
-
-      if (current.x === to.x && current.z === to.z) {
-        // Reconstruct path
-        const path: TilePosition[] = [];
-        let node: TilePosition | undefined = current;
-        while (node && !(node.x === from.x && node.z === from.z)) {
-          path.unshift(node);
-          node = cameFrom.get(key(node));
-        }
-        return path;
-      }
-
-      // Check neighbors (8 directions)
-      const neighbors: TilePosition[] = [
-        { x: current.x - 1, z: current.z },
-        { x: current.x + 1, z: current.z },
-        { x: current.x, z: current.z - 1 },
-        { x: current.x, z: current.z + 1 },
-        { x: current.x - 1, z: current.z - 1 },
-        { x: current.x + 1, z: current.z - 1 },
-        { x: current.x - 1, z: current.z + 1 },
-        { x: current.x + 1, z: current.z + 1 },
-      ];
-
-      for (const neighbor of neighbors) {
-        // Diagonal movement cost is higher
-        const isDiagonal = neighbor.x !== current.x && neighbor.z !== current.z;
-        const moveCost = isDiagonal ? 1.414 : 1;
-
-        const tentativeG = (gScore.get(key(current)) ?? Infinity) + moveCost;
-
-        if (tentativeG < (gScore.get(key(neighbor)) ?? Infinity)) {
-          cameFrom.set(key(neighbor), current);
-          gScore.set(key(neighbor), tentativeG);
-          fScore.set(key(neighbor), tentativeG + heuristic(neighbor, to));
-
-          if (!openSet.some(p => p.x === neighbor.x && p.z === neighbor.z)) {
-            openSet.push(neighbor);
-          }
-        }
-      }
-
-      // Limit search to prevent freezing
-      if (gScore.size > 1000) break;
-    }
-
-    return []; // No path found
-  }
-
   private onKeyDown(event: KeyboardEvent): void {
-    // Block input during demo
     if (this.isInDemoMode()) return;
 
     if (event.key === 'Shift') {
-      this.isRunning = true;
+      this.player.isRunning = true;
     }
     if (event.key === 'ArrowLeft' || event.key === 'q' || event.key === 'Q') {
-      this.targetCameraAngle += 90;
+      this.gameCamera.setTargetAngle(this.gameCamera.getTargetAngle() + 90);
     }
     if (event.key === 'ArrowRight' || event.key === 'e' || event.key === 'E') {
-      this.targetCameraAngle -= 90;
+      this.gameCamera.setTargetAngle(this.gameCamera.getTargetAngle() - 90);
     }
     if (event.key === 'ArrowUp' || event.key === '=' || event.key === '+') {
-      this.targetCameraZoom = Math.max(this.MIN_ZOOM, this.targetCameraZoom - 100);
+      this.gameCamera.setTargetZoom(this.gameCamera.getTargetZoom() - 100);
     }
     if (event.key === 'ArrowDown' || event.key === '-' || event.key === '_') {
-      this.targetCameraZoom = Math.min(this.MAX_ZOOM, this.targetCameraZoom + 100);
+      this.gameCamera.setTargetZoom(this.gameCamera.getTargetZoom() + 100);
     }
   }
 
   private onKeyUp(event: KeyboardEvent): void {
     if (event.key === 'Shift') {
-      this.isRunning = false;
+      this.player.isRunning = false;
     }
   }
 
   private onWheel(event: WheelEvent): void {
     event.preventDefault();
-    // Block input during demo
     if (this.isInDemoMode()) return;
-
     const zoomDelta = event.deltaY > 0 ? 100 : -100;
-    this.targetCameraZoom = Math.max(
-      this.MIN_ZOOM,
-      Math.min(this.MAX_ZOOM, this.targetCameraZoom + zoomDelta)
-    );
+    this.gameCamera.setTargetZoom(this.gameCamera.getTargetZoom() + zoomDelta);
   }
 
   private onResize(): void {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.composer.setSize(window.innerWidth, window.innerHeight);
+    this.gameCamera.resize(window.innerWidth / window.innerHeight);
+    this.gameRenderer.resize(window.innerWidth, window.innerHeight);
   }
 
-  private updateMovement(delta: number): void {
-    if (!this.currentTarget && this.path.length > 0) {
-      this.currentTarget = this.path.shift()!;
-    }
-
-    if (this.currentTarget) {
-      const targetX = this.currentTarget.x * TILE_SIZE;
-      const targetZ = this.currentTarget.z * TILE_SIZE;
-
-      const dx = targetX - this.player.position.x;
-      const dz = targetZ - this.player.position.z;
-      const distance = Math.sqrt(dx * dx + dz * dz);
-
-      const speed = (this.isRunning ? RUN_SPEED : WALK_SPEED) * TILE_SIZE;
-      const moveDistance = speed * delta;
-
-      if (distance <= moveDistance) {
-        this.player.position.x = targetX;
-        this.player.position.z = targetZ;
-        this.currentTarget = null;
-
-        this.send('player_move', {
-          target: {
-            x: Math.round(this.player.position.x / TILE_SIZE),
-            y: Math.round(this.player.position.z / TILE_SIZE),
-            level: 0
-          }
-        });
-
-        if (this.path.length === 0) {
-          this.clickMarker.visible = false;
-        }
-      } else {
-        const moveX = (dx / distance) * moveDistance;
-        const moveZ = (dz / distance) * moveDistance;
-        this.player.position.x += moveX;
-        this.player.position.z += moveZ;
-        this.player.rotation.y = Math.atan2(dx, dz);
-      }
-    }
-  }
-
-  private updateOtherPlayers(delta: number): void {
-    for (const [, player] of this.otherPlayers) {
-      const dx = player.targetPosition.x - player.mesh.position.x;
-      const dz = player.targetPosition.z - player.mesh.position.z;
-      const distance = Math.sqrt(dx * dx + dz * dz);
-
-      if (distance > 1) {
-        const speed = WALK_SPEED * TILE_SIZE;
-        const moveDistance = Math.min(speed * delta, distance);
-        player.mesh.position.x += (dx / distance) * moveDistance;
-        player.mesh.position.z += (dz / distance) * moveDistance;
-        player.mesh.rotation.y = Math.atan2(dx, dz);
-      }
-    }
-  }
+  // ==================
+  // Game Loop
+  // ==================
 
   private updateFakePlayers(delta: number): void {
+    const WALK_SPEED = 2.5;
     for (const [, player] of this.fakePlayers) {
       const dx = player.targetPosition.x - player.mesh.position.x;
       const dz = player.targetPosition.z - player.mesh.position.z;
@@ -1152,34 +495,40 @@ class Game {
       this.demoRunner.update(delta);
     }
 
-    this.updateMovement(delta);
-    this.updateOtherPlayers(delta);
+    // Update game
+    const reachedDest = this.player.update(delta);
+    if (reachedDest) {
+      this.clickMarker.visible = false;
+    }
+
+    // Send position updates while moving
+    if (this.player.isMoving()) {
+      const tile = this.player.getTilePosition();
+      this.network.send('player_move', {
+        target: { x: tile.x, y: tile.z, level: 0 }
+      });
+    }
+
+    this.otherPlayers.update(delta);
     this.updateFakePlayers(delta);
-    this.updateLoadedTiles();
+    this.world.updateLoadedTiles(this.player.mesh.position.x, this.player.mesh.position.z);
     this.updateStatus();
 
     if (this.clickMarker.visible) {
       this.clickMarker.rotation.z += delta * 2;
     }
 
-    // Smooth camera
-    const angleDiff = this.targetCameraAngle - this.cameraAngle;
-    this.cameraAngle += angleDiff * delta * 8;
+    // Update camera
+    this.gameCamera.update(delta, this.player.mesh.position);
 
-    const zoomDiff = this.targetCameraZoom - this.cameraZoom;
-    this.cameraZoom += zoomDiff * delta * 8;
+    // Update engine systems
+    this.terrainRenderer.updateCamera(this.gameCamera.camera.position);
+    this.lighting.updateShadowTarget(this.player.mesh.position);
+    this.atmosphere.update(this.gameCamera.camera.position);
+    this.water.update(delta, this.gameCamera.camera.position);
 
-    const angleRad = (this.cameraAngle * Math.PI) / 180;
-    const cameraOffset = new THREE.Vector3(
-      Math.sin(angleRad) * this.cameraZoom,
-      this.cameraZoom,
-      Math.cos(angleRad) * this.cameraZoom
-    );
-    this.camera.position.copy(this.player.position).add(cameraOffset);
-    this.camera.lookAt(this.player.position);
-
-    // Use composer for post-processing (bloom glow)
-    this.composer.render();
+    // Render
+    this.gameRenderer.render();
   }
 }
 

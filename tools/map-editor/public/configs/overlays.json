@@ -1,0 +1,10 @@
+[
+  { "id": 1, "name": "Stone Path", "color": "#888888", "hideUnderlay": true },
+  { "id": 2, "name": "Cobblestone", "color": "#707070", "hideUnderlay": true },
+  { "id": 3, "name": "Wooden Floor", "color": "#8B6914", "hideUnderlay": true },
+  { "id": 4, "name": "Water", "color": "#2060A0", "hideUnderlay": true },
+  { "id": 5, "name": "Lava", "color": "#CC3300", "hideUnderlay": true },
+  { "id": 6, "name": "Cave Floor", "color": "#404040", "hideUnderlay": true },
+  { "id": 7, "name": "Marble", "color": "#D0D0D0", "hideUnderlay": true },
+  { "id": 8, "name": "Brick", "color": "#8B4513", "hideUnderlay": true }
+]

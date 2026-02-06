@@ -8,14 +8,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true
+    "noEmit": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
-  "references": [
-    { "path": "./client" },
-    { "path": "./server" },
-    { "path": "./shared" },
-    { "path": "./tools/rs-viewer" }
-  ]
+  "include": ["src/**/*"]
 }

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ClawScape Map Editor</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+      body { display: flex; background: #1a1a2e; color: #eee; }
+
+      #viewport { flex: 1; position: relative; }
+      #viewport canvas { width: 100%; height: 100%; display: block; }
+
+      #toolbar {
+        position: absolute; top: 10px; left: 10px;
+        display: flex; gap: 5px; z-index: 10;
+      }
+      #toolbar button {
+        padding: 8px 14px; border: 1px solid #444; border-radius: 4px;
+        background: #2a2a4e; color: #eee; cursor: pointer; font-size: 13px;
+      }
+      #toolbar button:hover { background: #3a3a6e; }
+      #toolbar button.active { background: #5555aa; border-color: #88f; }
+
+      #sidebar {
+        width: 280px; background: #16162e; padding: 12px;
+        border-left: 1px solid #333; overflow-y: auto;
+      }
+      #sidebar h3 { color: #88aaff; margin-bottom: 8px; font-size: 14px; }
+      #sidebar label { display: block; font-size: 12px; color: #aaa; margin-top: 8px; }
+      #sidebar select, #sidebar input {
+        width: 100%; padding: 5px; margin-top: 2px;
+        background: #222244; color: #eee; border: 1px solid #444; border-radius: 3px;
+      }
+      #sidebar .section { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #333; }
+
+      .color-swatch {
+        display: inline-block; width: 16px; height: 16px;
+        border: 1px solid #666; border-radius: 2px; vertical-align: middle; margin-right: 5px;
+      }
+
+      #info-bar {
+        position: absolute; bottom: 10px; left: 10px;
+        background: rgba(0,0,0,0.7); padding: 8px 12px; border-radius: 4px;
+        font-size: 12px; font-family: monospace; z-index: 10;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="viewport">
+      <canvas id="editor-canvas"></canvas>
+      <div id="toolbar">
+        <button id="btn-height" class="active">Height</button>
+        <button id="btn-underlay">Underlay</button>
+        <button id="btn-overlay">Overlay</button>
+        <button id="btn-objects">Objects</button>
+        <button id="btn-npcs">NPCs</button>
+        <button id="btn-save">Save</button>
+        <button id="btn-load">Load</button>
+      </div>
+      <div id="info-bar">Tile: 0, 0 | Height: 0</div>
+    </div>
+    <div id="sidebar">
+      <div class="section" id="panel-height">
+        <h3>Height Tool</h3>
+        <label>Brush Size
+          <input type="range" id="height-brush-size" min="1" max="10" value="1">
+        </label>
+        <label>Height Delta
+          <input type="range" id="height-delta" min="1" max="20" value="5">
+        </label>
+        <label>Mode</label>
+        <select id="height-mode">
+          <option value="raise">Raise</option>
+          <option value="lower">Lower</option>
+          <option value="flatten">Flatten</option>
+          <option value="smooth">Smooth</option>
+        </select>
+      </div>
+      <div class="section" id="panel-underlay" style="display:none">
+        <h3>Underlay Tool</h3>
+        <label>Floor Type</label>
+        <select id="underlay-select"></select>
+      </div>
+      <div class="section" id="panel-overlay" style="display:none">
+        <h3>Overlay Tool</h3>
+        <label>Overlay Type</label>
+        <select id="overlay-select"></select>
+        <label>Shape</label>
+        <select id="overlay-shape">
+          <option value="0">Full Tile</option>
+          <option value="1">Full (Overlay)</option>
+          <option value="2">Mixed</option>
+          <option value="3">Diagonal 1</option>
+          <option value="4">Diagonal 2</option>
+          <option value="5">Diagonal 3</option>
+          <option value="6">Diagonal 4</option>
+          <option value="7">Half 1</option>
+          <option value="8">Half 2</option>
+          <option value="9">Half 3</option>
+          <option value="10">Corner 1</option>
+          <option value="11">Corner 2</option>
+          <option value="12">Corner 3</option>
+        </select>
+        <label>Rotation</label>
+        <select id="overlay-rotation">
+          <option value="0">0°</option>
+          <option value="1">90°</option>
+          <option value="2">180°</option>
+          <option value="3">270°</option>
+        </select>
+      </div>
+      <div class="section" id="panel-objects" style="display:none">
+        <h3>Objects</h3>
+        <label>Object Type</label>
+        <select id="object-select"></select>
+        <label>Rotation</label>
+        <select id="object-rotation">
+          <option value="0">0°</option>
+          <option value="1">90°</option>
+          <option value="2">180°</option>
+          <option value="3">270°</option>
+        </select>
+      </div>
+      <div class="section" id="panel-npcs" style="display:none">
+        <h3>NPC Spawns</h3>
+        <label>NPC ID <input type="number" id="npc-id" value="1" min="1"></label>
+        <label>Respawn Ticks <input type="number" id="npc-respawn" value="10" min="0"></label>
+      </div>
+    </div>
+    <script type="module" src="/src/editor.ts"></script>
+  </body>
+</html>

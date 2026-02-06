@@ -1,813 +1,426 @@
-# CLAWSCAPE - Master Task List
+# ClawScape Master Tasks
 
-Building a RuneScape-like MMORPG from scratch in Three.js + Node.js.
+## Milestone 0: HD World Engine — COMPLETE
 
-Reference: Lost City codebase at `C:\Users\go\lostcity-ref`
+### 0.1 Repo Restructure — DONE
+- [x] Moved rs-map-viewer into tools/rs-viewer/
+- [x] Restructured client into engine/ + game/ + net/
+- [x] Monorepo workspaces: client, server, shared, tools/*
+- [x] Demo system preserved and working
 
----
+### 0.2 Asset Format Design — DONE
+- [x] MapSquare format: 64x64 tiles, 4 levels, locs, NPC spawns
+- [x] Config formats: underlays, overlays, locs, items, NPCs, environments (JSON)
+- [x] Type definitions in shared/src/formats.ts
+- [x] Starter map generated (50-50.json)
+- [x] glTF for models, PNG/KTX2 for textures
 
-# PHASE 0: FOUNDATION
+### 0.3 RLHD Terrain Renderer — DONE
+- [x] 13 tile shapes ported from RS (TileShapes.ts)
+- [x] Height interpolation (4-corner per tile)
+- [x] Per-vertex lighting with sun direction
+- [x] Underlay color blending (3-tile radius)
+- [x] Custom ShaderMaterial: vertex colors, specular, fog, tone mapping
+- [x] TerrainRenderer loads MapSquare files
 
-## 0.1 Project Setup
+### 0.4 Lighting & Shadows — DONE
+- [x] Directional sun light with PCF soft shadow mapping
+- [x] Shadow camera follows player
+- [x] Configurable shadow quality (512-8192)
+- [x] Point light system (up to 50 lights)
+- [x] Environment presets (overworld_day, dusk, cave, swamp)
 
-- [x] **P0.1.1** Initialize monorepo structure (client/, server/, shared/)
-- [x] **P0.1.2** Set up TypeScript configuration for all packages
-- [ ] **P0.1.3** Set up ESLint + Prettier
-- [x] **P0.1.4** Set up build scripts (esbuild or vite)
-- [x] **P0.1.5** Create package.json for each package
-- [x] **P0.1.6** Set up hot reload for development
-- [ ] **P0.1.7** Create basic README with setup instructions
-- [x] **P0.1.8** Set up GitHub repository
-- [x] **P0.1.9** Create .gitignore
+### 0.5 Atmosphere — DONE
+- [x] Exponential squared fog (per-environment)
+- [x] Sky hemisphere with gradient
+- [x] Sky follows camera position
+- [x] Environment configs drive all atmosphere settings
 
-## 0.2 Client Foundation (Three.js)
+### 0.6 Water — DONE
+- [x] Animated wave displacement (3-octave sine waves)
+- [x] Fresnel reflection
+- [x] Caustic patterns
+- [x] Sun specular on water
+- [x] Fog integration
+- [x] Auto-detection of water tiles from map data
 
-- [x] **P0.2.1** Install Three.js and dependencies
-- [x] **P0.2.2** Create basic HTML entry point
-- [x] **P0.2.3** Initialize Three.js scene, camera, renderer
-- [x] **P0.2.4** Create game loop (requestAnimationFrame)
-- [x] **P0.2.5** Add window resize handling
-- [x] **P0.2.6** Create basic ground plane
-- [ ] **P0.2.7** Add orbit controls for debugging
-- [x] **P0.2.8** Create isometric-style camera (RS perspective)
-- [x] **P0.2.9** Add basic lighting
+### 0.7 Model System — DONE
+- [x] GLTFLoader integration
+- [x] Model cache (load once, clone many)
+- [x] Loc placement from MapSquare data
+- [x] Placeholder generation (trees, rocks, torches, signs, etc.)
+- [x] Shadow casting/receiving on models
 
-## 0.3 Server Foundation (Node.js)
+### 0.8 Map Editor — DONE
+- [x] Web-based (tools/map-editor/)
+- [x] Height painting (raise/lower/flatten/smooth with brush)
+- [x] Underlay painting
+- [x] Overlay painting (all 13 shapes + rotation)
+- [x] Object placement
+- [x] NPC spawn placement
+- [x] Save/load JSON map files
+- [x] Top-down orthographic view with pan/zoom
 
-- [x] **P0.3.1** Initialize Node.js server project
-- [x] **P0.3.2** Set up WebSocket server (ws library)
-- [x] **P0.3.3** Create basic connection handling
-- [x] **P0.3.4** Create message protocol (JSON or binary)
-- [x] **P0.3.5** Add heartbeat/ping-pong for connection health
-- [x] **P0.3.6** Create game tick loop (600ms like RS)
-- [ ] **P0.3.7** Set up SQLite for development database
-- [ ] **P0.3.8** Create basic logging system
-
-## 0.4 Shared Engine Foundation
-
-- [x] **P0.4.1** Create shared types package
-- [x] **P0.4.2** Define core entity interfaces (Player, NPC, Item, etc.)
-- [x] **P0.4.3** Create coordinate system (tile-based)
-- [x] **P0.4.4** Define network message types
-- [x] **P0.4.5** Create shared constants (tick rate, tile size, etc.)
-
----
-
-# PHASE 1: CORE GAMEPLAY
-
-## 1.1 Player Movement
-
-### Client
-- [x] **P1.1.1** Create player entity class
-- [x] **P1.1.2** Add click-to-move input handling
-- [x] **P1.1.3** Display click marker on ground
-- [x] **P1.1.4** Render player as placeholder cube/model
-- [x] **P1.1.5** Smooth movement interpolation
-- [x] **P1.1.6** Camera follow player
-
-### Server
-- [x] **P1.1.7** Handle movement requests
-- [ ] **P1.1.8** Validate movement (speed, distance)
-- [x] **P1.1.9** Broadcast position updates to nearby players
-- [x] **P1.1.10** Implement basic pathfinding (A*)
-
-### Shared
-- [ ] **P1.1.11** Movement validation logic
-- [x] **P1.1.12** Pathfinding algorithm
-
-## 1.2 Multiplayer Sync
-
-- [x] **P1.2.1** Send player position to server
-- [x] **P1.2.2** Receive other players' positions
-- [x] **P1.2.3** Render other players
-- [x] **P1.2.4** Handle player join/leave
-- [x] **P1.2.5** Interpolate other players' movement
-- [x] **P1.2.6** Entity ID system
-- [ ] **P1.2.7** Interest management (only sync nearby entities)
-
-## 1.3 World/Map System
-
-- [x] **P1.3.1** Define tile format (height, texture, flags)
-- [x] **P1.3.2** Create map chunk system
-- [ ] **P1.3.3** Load/save map data
-- [x] **P1.3.4** Render terrain tiles
-- [x] **P1.3.5** Collision map (walkable/blocked)
-- [ ] **P1.3.6** Multi-level support (bridges, buildings)
-- [x] **P1.3.7** Chunk loading/unloading based on player position
-- [ ] **P1.3.8** Basic map editor tool
-
-## 1.4 Camera System
-
-- [x] **P1.4.1** RS-style isometric camera angle
-- [x] **P1.4.2** Camera rotation (compass directions)
-- [x] **P1.4.3** Zoom in/out
-- [x] **P1.4.4** Smooth camera transitions
-- [ ] **P1.4.5** Camera collision (don't clip through walls)
+### 0.9 Post-Processing — DONE
+- [x] FXAA anti-aliasing
+- [x] Bloom (UnrealBloomPass)
+- [x] Color grading (brightness, contrast, saturation)
+- [x] Colorblind modes (protanopia, deuteranopia, tritanopia)
+- [x] Anisotropic filtering
+- [x] ACES filmic tone mapping
+- [x] Configurable via GraphicsSettings
 
 ---
 
-# PHASE 2: PLAYER SYSTEMS
+## Milestone 1: Game Loop
+> "It's a game — fight, gather, craft, talk"
 
-## 2.1 Account System
+### 1.1 Server Game Engine (140 BPM)
+- [ ] 140 BPM tick system (428ms per tick)
+- [ ] GameEngine class with ordered tick processing
+- [ ] ServerEntity base class (position, path, movement)
+- [ ] WorldState (load maps, collision flags, walkability)
+- [ ] Server-side A* pathfinder
+- [ ] Server-authoritative movement
 
-- [ ] **P2.1.1** Registration (username, password, email)
-- [ ] **P2.1.2** Login authentication
-- [ ] **P2.1.3** Password hashing (bcrypt)
-- [ ] **P2.1.4** Session management
-- [ ] **P2.1.5** Character creation screen
-- [ ] **P2.1.6** Username validation (no duplicates, appropriate)
-- [ ] **P2.1.7** Account recovery flow
-- [ ] **P2.1.8** **ONE ACCOUNT ENFORCEMENT** - device/IP tracking
+### 1.2 Server Player System
+- [ ] ServerPlayer entity with action queue
+- [ ] PlayerManager (lifecycle, input processing, state sync)
+- [ ] Dirty flag system for efficient updates
+- [ ] Network message handler
+- [ ] Rewrite server entry point to use GameEngine
 
-## 2.2 Player Stats
+### 1.3 Combat System (PvE)
+- [ ] 3 styles: Range (Q), Melee (W), Faith (E)
+- [ ] 4 weapon slots per style (ASDF), 12 weapons total
+- [ ] Special attack (R key, spends rage)
+- [ ] Combat triangle: melee armor blocks range, range absorbs faith, faith deflects melee
+- [ ] Rage meter (builds from combat — melee fastest, range slow, faith none)
+- [ ] Prayer resource (drained by Faith weapons, recharged out of combat)
+- [ ] Damage calc: accuracy roll + damage roll + equipment bonuses
+- [ ] Hit splats, death/respawn
+- [ ] NPC death → respawn timer
 
-- [ ] **P2.2.1** Define all skills (Attack, Strength, Defence, etc.)
-- [ ] **P2.2.2** XP and level calculation (RS formula)
-- [ ] **P2.2.3** Store stats in database
-- [ ] **P2.2.4** Sync stats to client
-- [ ] **P2.2.5** Stats UI panel
-- [ ] **P2.2.6** XP drops display
-- [ ] **P2.2.7** Level up notification
-- [ ] **P2.2.8** Total level calculation
-- [ ] **P2.2.9** Combat level calculation
+### 1.4 NPC System
+- [ ] ServerNpc entity with AI state machine (IDLE/WANDER/PATROL/CHASE/ATTACK/RETURN/DEAD)
+- [ ] NPC configs: Chicken, Goblin (aggressive), Guard, Shopkeeper, Mechanic
+- [ ] Wandering, patrol waypoints, aggro system
+- [ ] Return-to-spawn with leash distance
+- [ ] Respawn system
+- [ ] NPC sync to clients (visible area)
 
-## 2.3 Inventory System
+### 1.5 Inventory & Equipment
+- [ ] 28-slot inventory (server-authoritative)
+- [ ] 11 equipment slots (head, cape, neck, weapon, body, shield, legs, hands, feet, ring, ammo)
+- [ ] Equip/unequip with stat recalculation
+- [ ] Item configs: weapons, armor, materials, food
+- [ ] Stackable items
 
-- [ ] **P2.3.1** 28-slot inventory structure
-- [ ] **P2.3.2** Item definition format (id, name, stackable, etc.)
-- [ ] **P2.3.3** Add/remove items
-- [ ] **P2.3.4** Stack handling
-- [ ] **P2.3.5** Inventory UI rendering
-- [ ] **P2.3.6** Drag and drop items
-- [ ] **P2.3.7** Drop items on ground
-- [ ] **P2.3.8** Pick up ground items
-- [ ] **P2.3.9** Use item on item
-- [ ] **P2.3.10** Use item on object/NPC
-- [ ] **P2.3.11** Item examine text
-- [ ] **P2.3.12** **UNTRADEABLE by default** (SOUL: ironman for POWER)
+### 1.6 Skill System (Tier-Based)
+- [ ] Tier system: ALL skills advance via quests + boss kills only. No XP, no grinding
+- [ ] Tiers have no cap (grow with content updates)
+- [ ] Each tier unlocks meaningful things (weapons, armor, abilities, recipes)
+- [ ] No dead tiers
+- [ ] Combat tiers: unlock new weapons/armor/combat abilities
+- [ ] Life skill tiers: unlock new recipes, higher-tier materials
+- [ ] Skilling ACTIONS exist (chop trees, cook, repair) but produce items — they do NOT advance tiers
+- [ ] Skills: Strength, Accuracy, Prayer (combat), Repair, Woodcutting, Cooking (life), Hitpoints
+- [ ] Tier-up from quests only (Milestone 3 content)
 
-## 2.4 Equipment System
+### 1.7 Skilling Actions
+- [ ] Tick-based actions: chop tree → logs, cook food → cooked meat, repair → consume scrap
+- [ ] Success rolls per tick
+- [ ] Auto-repeat
+- [ ] Progress bar during action
+- [ ] Item production (items go to inventory)
 
-- [ ] **P2.4.1** Equipment slots (head, chest, legs, weapon, etc.)
-- [ ] **P2.4.2** Equip/unequip items
-- [ ] **P2.4.3** Equipment requirements (level, quest)
-- [ ] **P2.4.4** Equipment stats (attack, defence bonuses)
-- [ ] **P2.4.5** Equipment UI panel
-- [ ] **P2.4.6** Visual equipment on player model
-- [ ] **P2.4.7** Attack styles (accurate, aggressive, defensive)
+### 1.8 NPC Dialogue
+- [ ] Dialogue open/close protocol
+- [ ] NPC name, text, response options
+- [ ] Choice handling
+- [ ] Basic interactions: Talk-to, Attack
 
-## 2.5 Bank System
+### 1.9 Client State & Network
+- [ ] GameState class (centralized state store for all server data)
+- [ ] Expanded NetworkClient (all new message types)
+- [ ] NPC tracking with interpolation
+- [ ] Hit splat / progress queues
+- [ ] Dialogue and skill progress state
 
-- [ ] **P2.5.1** Large storage (800+ slots)
-- [ ] **P2.5.2** Bank booth interaction
-- [ ] **P2.5.3** Deposit/withdraw
-- [ ] **P2.5.4** Bank tabs
-- [ ] **P2.5.5** Search/filter
-- [ ] **P2.5.6** Placeholders
-- [ ] **P2.5.7** Bank UI
+### 1.10 Client NPC Rendering
+- [ ] NPC meshes (placeholder boxes: red=hostile, green=friendly)
+- [ ] Name labels, health bars
+- [ ] Smooth position interpolation
+- [ ] Click-to-target (raycast)
 
----
+### 1.11 Client UI
+- [ ] Stats orbs: HP, Rage, Prayer (top left)
+- [ ] Combat hotbar: QWE styles + R special + ASDF weapons (bottom center)
+- [ ] Inventory panel: 28-slot grid, toggle I key (right side)
+- [ ] Skill panel: tiers + progress, toggle K key (right side)
+- [ ] Hit splat renderer (3D floating damage numbers)
+- [ ] Dialogue panel (NPC name, text, options)
+- [ ] Skill progress bar (during actions)
 
-# PHASE 3: ECONOMY (SOUL.md Three Layers)
+### 1.12 Input Remap
+- [ ] Q/W/E = Range/Melee/Faith style switch
+- [ ] R = special attack
+- [ ] ASDF = weapon slots
+- [ ] 1234 = bot commands (stub)
+- [ ] I = inventory, K = skills
+- [ ] [/] = camera rotation (replaces old Q/E)
 
-## 3.1 Gold System (Luxury Currency)
-
-- [ ] **P3.1.1** Gold as separate currency (not tradeable P2P)
-- [ ] **P3.1.2** Gold earning methods (duplicate burn, content)
-- [ ] **P3.1.3** Gold spending on cosmetics
-- [ ] **P3.1.4** Gold balance UI
-- [ ] **P3.1.5** **Gold CANNOT buy power items**
-
-## 3.2 Item Ownership (Ironman for POWER)
-
-- [ ] **P3.2.1** All functional items are untradeable
-- [ ] **P3.2.2** Items bound to account on acquire
-- [ ] **P3.2.3** No P2P item trading system (intentionally omitted)
-- [ ] **P3.2.4** "You earned it" philosophy enforcement
-
-## 3.3 Grand Exchange (Luxury/Rares Only)
-
-- [ ] **P3.3.1** GE building/interface
-- [ ] **P3.3.2** List cosmetic items for gold
-- [ ] **P3.3.3** List rares for gold
-- [ ] **P3.3.4** Buy orders
-- [ ] **P3.3.5** Sell orders
-- [ ] **P3.3.6** Price history
-- [ ] **P3.3.7** **NO functional gear on GE**
-
-## 3.4 Official RWT Marketplace
-
-- [ ] **P3.4.1** Gold ↔ Real money exchange interface
-- [ ] **P3.4.2** **10% seller fee** implementation
-- [ ] **P3.4.3** Payment processing integration
-- [ ] **P3.4.4** Transaction history
-- [ ] **P3.4.5** Payout system for sellers
-- [ ] **P3.4.6** Fraud prevention
-- [ ] **P3.4.7** Price floor/ceiling mechanics
-
-## 3.5 Item Lending (Rental Market)
-
-- [ ] **P3.5.1** Lend item interface
-- [ ] **P3.5.2** Set rental price
-- [ ] **P3.5.3** Borrower limit: ONE item at a time
-- [ ] **P3.5.4** **15% house cut** on rental fees
-- [ ] **P3.5.5** Lender receives 85%
-- [ ] **P3.5.6** Recall item anytime
-- [ ] **P3.5.7** Rental duration tracking
-- [ ] **P3.5.8** Lent items cannot be dropped/lost
-
-## 3.6 Duplicate Burning
-
-- [ ] **P3.6.1** Burn duplicate items for gold
-- [ ] **P3.6.2** Gold value calculation per item
-- [ ] **P3.6.3** Burn confirmation
-- [ ] **P3.6.4** Item sink tracking
+### 1.13 Data Files
+- [ ] items.json, npcs.json
+- [ ] NPC spawns in starter map
 
 ---
 
-# PHASE 4: COMBAT SYSTEM
+## Milestone 2: AI Bot Companion & Social
+> "Your bot companion — the core human-AI bond"
 
-## 4.1 PvE Combat Core
+### 2.1 Bot Companion Core
+- [ ] Every player gets one bot (locked to account forever)
+- [ ] Bot entity: no HP/mana/rage — just ENERGY
+- [ ] Bot commands: 1=range, 2=melee, 3=faith, 4=focus target
+- [ ] Bot mirrors combat triangle (simplified)
+- [ ] Bot AI: attacks player's target, follows commands
 
-- [ ] **P4.1.1** Combat tick system (600ms)
-- [ ] **P4.1.2** Attack animations
-- [ ] **P4.1.3** Damage calculation (RS formula)
-- [ ] **P4.1.4** Hitsplats display
-- [ ] **P4.1.5** Health bars
-- [ ] **P4.1.6** Death handling
-- [ ] **P4.1.7** Combat XP rewards
-- [ ] **P4.1.8** Auto-retaliate option
-- [ ] **P4.1.9** Run away / retreat
+### 2.2 Bot Energy System
+- [ ] Energy depletes during combat/activity
+- [ ] Early: fed by player's Faith casting (symbiosis — drains prayer)
+- [ ] Mid: Solar panels (daytime/outdoors only)
+- [ ] Mid: Wind turbine (open terrain only)
+- [ ] Late: Nuclear (always on, rare, expensive)
+- [ ] Out of energy → bot shuts down
+- [ ] Push past empty → structural damage → bot BREAKS
+- [ ] Broken bot needs Repair skill to fix
+- [ ] Environment affects bot: time of day, weather, terrain
 
-## 4.2 Prayer System
+### 2.3 Bot Repair & Crafting
+- [ ] Repair skill fixes broken bots
+- [ ] Craft bot upgrades: solar panels, wind turbines, armor
+- [ ] Repair shops in towns (social hubs)
+- [ ] Higher repair tiers = faster repairs, fix more damage, install upgrades
 
-- [ ] **P4.2.1** Prayer points
-- [ ] **P4.2.2** Prayer drain
-- [ ] **P4.2.3** Protection prayers
-- [ ] **P4.2.4** Stat boost prayers
-- [ ] **P4.2.5** Prayer UI
-- [ ] **P4.2.6** Altars to recharge
-- [ ] **P4.2.7** Prayer switching (tick-perfect)
+### 2.4 Economy (3-Layer System)
+- [ ] POWER layer: all functional items untradeable
+- [ ] GOLD layer: earned from burning dupes + content completion
+- [ ] Item burning: duplicate item → gold
+- [ ] Grand Exchange: cosmetics + rares ONLY
+- [ ] Basic NPC shops (buy/sell)
+- [ ] Bank system
 
-## 4.3 Magic System
+### 2.5 Social Systems
+- [ ] Public chat with UI
+- [ ] Private messaging
+- [ ] Friends list
+- [ ] Clan chat
+- [ ] Discord integration (account linking, voice chat)
 
-- [ ] **P4.3.1** Spellbook interface
-- [ ] **P4.3.2** Rune requirements
-- [ ] **P4.3.3** Combat spells
-- [ ] **P4.3.4** Utility spells (teleports)
-- [ ] **P4.3.5** Spell animations/effects
-- [ ] **P4.3.6** Magic accuracy/damage calculation
+### 2.6 Clans
+- [ ] Clan creation, ranks, permissions
+- [ ] Clan strongholds (gold-sink permanent upgrades)
+- [ ] Public loyalty history
+- [ ] Territory control basics
 
-## 4.4 Ranged System
-
-- [ ] **P4.4.1** Ammunition system
-- [ ] **P4.4.2** Ranged weapons (bows, crossbows)
-- [ ] **P4.4.3** Projectile animations
-- [ ] **P4.4.4** Ranged accuracy/damage calculation
-
-## 4.5 Special Attacks
-
-- [ ] **P4.5.1** Special attack energy bar
-- [ ] **P4.5.2** Weapon special attacks
-- [ ] **P4.5.3** Special attack effects
-- [ ] **P4.5.4** Energy regeneration
-
----
-
-# PHASE 5: PVP SYSTEMS (SOUL.md Three Modes)
-
-## 5.1 Duel Arena (Skill-Based, No RNG)
-
-- [ ] **P5.1.1** Duel challenge interface
-- [ ] **P5.1.2** **Equal stakes requirement**
-- [ ] **P5.1.3** Arena instance creation
-- [ ] **P5.1.4** **NO RNG** - hits always land
-- [ ] **P5.1.5** Fixed damage values
-- [ ] **P5.1.6** **One-click gear switches** (anti-AHK)
-- [ ] **P5.1.7** Prayer switching mechanics
-- [ ] **P5.1.8** NH bridding support
-- [ ] **P5.1.9** Stakes transfer on win
-- [ ] **P5.1.10** Match history/stats
-
-## 5.2 Wilderness (Territory Control)
-
-- [ ] **P5.2.1** Wilderness zone boundaries
-- [ ] **P5.2.2** PvP enabled in wilderness
-- [ ] **P5.2.3** **Players lose NOTHING on death**
-- [ ] **P5.2.4** Territory zones with resources
-- [ ] **P5.2.5** Territory control mechanics
-- [ ] **P5.2.6** Best skilling spots in dangerous zones
-- [ ] **P5.2.7** Best bosses in dangerous zones
-- [ ] **P5.2.8** Clan territory claiming
-- [ ] **P5.2.9** Respawn at edge of wilderness
-
-## 5.3 Clan Wars (Normalized Combat)
-
-- [ ] **P5.3.1** Clan Wars portal/arena
-- [ ] **P5.3.2** **Everyone normalized** - same level, same items
-- [ ] **P5.3.3** Team assignment
-- [ ] **P5.3.4** Match types (last team standing, CTF, etc.)
-- [ ] **P5.3.5** **Honor Points** reward currency
-- [ ] **P5.3.6** Honor Points shop (cosmetics only)
-- [ ] **P5.3.7** Match history
-- [ ] **P5.3.8** Clan rankings
+### 2.7 Player Authentication & Persistence
+- [ ] Account creation, login/logout
+- [ ] Session tokens
+- [ ] Character persistence (save/load)
+- [ ] SQLite dev, PostgreSQL prod
 
 ---
 
-# PHASE 6: SKILLS
+## Milestone 3: Quests, Bosses & Content
+> "A world worth exploring — every quest matters"
 
-## 6.1 Skill Core System
+### 3.1 Quest System
+- [ ] Linear structure: Quest 1 → unlocks Quests 2,3,4 (any order, ALL required) → Quest 5
+- [ ] No side quests, no FOMO, no optimal path
+- [ ] Quest states: not started, in progress, complete
+- [ ] Quest requirements (previous quests, skill tiers)
+- [ ] Quest rewards: tier unlocks, items, gold, area access
+- [ ] Quest log UI
+- [ ] Quest-gated everything: skills, bosses, areas
 
-- [ ] **P6.1.1** Skill action framework
-- [ ] **P6.1.2** **Tick manipulation support** (3-tick, 2-tick, etc.)
-- [ ] **P6.1.3** **Massive XP rewards for tick-perfect play** (3x, not 10%)
-- [ ] **P6.1.4** Tool tier system (bronze → dragon)
-- [ ] **P6.1.5** Resource depletion/respawn
+### 3.2 Tier Progression (Full)
+- [ ] Tiers from quest completion + boss first kill
+- [ ] First kill = tier up (guaranteed, one-time)
+- [ ] Repeat kills = cosmetics/pets only (NOT power)
+- [ ] No combat level formula, no account builds, no pures
+- [ ] Tier count grows with content updates
+- [ ] Every tier unlocks something meaningful
 
-## 6.2 Gathering Skills
+### 3.3 Boss Fights (Music-Synced)
+- [ ] Every boss quest-locked with story buildup
+- [ ] Music synced at 140 BPM, 8-bar phases (~14 sec each)
+- [ ] Boss structure: intro → combat → intensify → drop → shift → push → kill window → outro
+- [ ] Attacks on beats, phases on bar boundaries
+- [ ] Quest teaches WHY and HOW to fight
+- [ ] First kill = tier up, repeats = cosmetic only
 
-### Woodcutting
-- [ ] **P6.2.1** Tree objects
-- [ ] **P6.2.2** Axe requirements
-- [ ] **P6.2.3** Log types
-- [ ] **P6.2.4** Tree respawn
-- [ ] **P6.2.5** Bird nests (rare)
+### 3.4 Starting Area
+- [ ] Tutorial: fix local kid's broken robot toy (introduces Repair + human-AI bond)
+- [ ] Starting town: 10+ NPCs, shops, bank, repair shop
+- [ ] Beginner zone: tier 1 monsters
+- [ ] Introductory quest chain (5-10 quests)
+- [ ] First boss (tier 1 → tier 2)
 
-### Mining
-- [ ] **P6.2.6** Rock objects
-- [ ] **P6.2.7** Pickaxe requirements
-- [ ] **P6.2.8** Ore types
-- [ ] **P6.2.9** Rock respawn
-- [ ] **P6.2.10** Gem finding
+### 3.5 Life Skills (Full Set, Quest-Trained)
+- [ ] Fishing, Mining, Herblore/Alchemy, Crafting, Agility, Thieving, Construction
+- [ ] Learned through quest context (quest teaches skill, skill gates next quest)
+- [ ] Skills interconnect: fishing + cooking → feed townspeople → builds faith
+- [ ] No standalone grinding
+- [ ] Each skill has tiers unlocked by quests
 
-### Fishing
-- [ ] **P6.2.11** Fishing spots
-- [ ] **P6.2.12** Fishing equipment
-- [ ] **P6.2.13** Fish types
-- [ ] **P6.2.14** Spot movement
+### 3.6 Combat Training (Quest-Trained)
+- [ ] Strength: quests with physical challenges
+- [ ] Accuracy: quests with precision challenges
+- [ ] Prayer: quests about helping others, acts of faith
+- [ ] Train how it would actually be trained (thematic)
 
-## 6.3 Production Skills
-
-### Smithing
-- [ ] **P6.3.1** Furnace smelting
-- [ ] **P6.3.2** Anvil smithing
-- [ ] **P6.3.3** Bar types
-- [ ] **P6.3.4** Equipment crafting
-
-### Cooking
-- [ ] **P6.3.5** Range/fire cooking
-- [ ] **P6.3.6** Food healing values
-- [ ] **P6.3.7** Burn chance
-
-### Crafting
-- [ ] **P6.3.8** Leather crafting
-- [ ] **P6.3.9** Jewelry crafting
-- [ ] **P6.3.10** Pottery
-
-### Fletching
-- [ ] **P6.3.11** Bow making
-- [ ] **P6.3.12** Arrow making
-- [ ] **P6.3.13** Crossbow making
-
-### Herblore
-- [ ] **P6.3.14** Herb cleaning
-- [ ] **P6.3.15** Potion making
-- [ ] **P6.3.16** Potion effects
-
-### Runecrafting
-- [ ] **P6.3.17** Rune essence mining
-- [ ] **P6.3.18** Altar crafting
-- [ ] **P6.3.19** Multiple runes at high level
-
-## 6.4 Support Skills
-
-### Agility
-- [ ] **P6.4.1** Agility courses
-- [ ] **P6.4.2** Obstacles
-- [ ] **P6.4.3** Run energy restoration bonus
-- [ ] **P6.4.4** Shortcuts
-
-### Thieving
-- [ ] **P6.4.5** Pickpocketing NPCs
-- [ ] **P6.4.6** Stall thieving
-- [ ] **P6.4.7** Chests
-- [ ] **P6.4.8** Stun on fail
-
-### Slayer
-- [ ] **P6.4.9** Slayer masters
-- [ ] **P6.4.10** Task assignment
-- [ ] **P6.4.11** Slayer-only monsters
-- [ ] **P6.4.12** Slayer points
-- [ ] **P6.4.13** Slayer equipment
-
-### Hunter
-- [ ] **P6.4.14** Trap types
-- [ ] **P6.4.15** Creature tracking
-- [ ] **P6.4.16** Impling catching
-
-### Farming
-- [ ] **P6.4.17** Farming patches
-- [ ] **P6.4.18** Seed planting
-- [ ] **P6.4.19** Growth cycles
-- [ ] **P6.4.20** Disease/protection
-
-### Construction
-- [ ] **P6.4.21** Player-owned house
-- [ ] **P6.4.22** Room building
-- [ ] **P6.4.23** Furniture building
-- [ ] **P6.4.24** House utilities (altar, portal, etc.)
+### 3.7 Map Expansion
+- [ ] Multiple map squares streaming
+- [ ] 5-10 distinct zones (forest, desert, cave, swamp, town, mountain)
+- [ ] Zone-specific environments
+- [ ] Zone transitions
 
 ---
 
-# PHASE 7: NPCs & MONSTERS
+## Milestone 4: Minigames & Social Activities
+> "Wintertodt-style social gameplay — fun, not grind"
 
-## 7.1 NPC System
+### 4.1 Minigame Framework
+- [ ] Instanced social activities (like OSRS Wintertodt, Tempoross, GoTR, Volcanic Mine)
+- [ ] Music-synced activity cycles (build-up = intense, chill = chat)
+- [ ] Social by default — players gather and play together
+- [ ] Unique rewards per minigame (cosmetics, materials, pets)
+- [ ] NOT the primary progression path (tiers come from quests)
 
-- [ ] **P7.1.1** NPC definition format
-- [ ] **P7.1.2** NPC spawning
-- [ ] **P7.1.3** NPC pathfinding
-- [ ] **P7.1.4** NPC interaction (talk, trade, etc.)
-- [ ] **P7.1.5** NPC animations
+### 4.2 Skilling Minigames
+- [ ] Woodcutting minigame (team tree-felling event)
+- [ ] Cooking minigame (community feast preparation)
+- [ ] Repair minigame (town infrastructure maintenance)
+- [ ] Mining minigame (volcanic mine style)
+- [ ] Fishing minigame (tempoross style)
 
-## 7.2 Dialogue System
-
-- [ ] **P7.2.1** Dialogue trees
-- [ ] **P7.2.2** Player response options
-- [ ] **P7.2.3** Dialogue UI (chat box)
-- [ ] **P7.2.4** Dialogue conditions (quest state, items, etc.)
-- [ ] **P7.2.5** Dialogue scripting language
-
-## 7.3 Shop System
-
-- [ ] **P7.3.1** Shop interface
-- [ ] **P7.3.2** Shop stock
-- [ ] **P7.3.3** Buy/sell (for gold - luxury items only)
-- [ ] **P7.3.4** Stock regeneration
-- [ ] **P7.3.5** Specialty shops
-
-## 7.4 Monster System
-
-- [ ] **P7.4.1** Monster definitions (stats, drops)
-- [ ] **P7.4.2** Monster AI (aggro, wander, return)
-- [ ] **P7.4.3** Monster spawning
-- [ ] **P7.4.4** Monster combat
-- [ ] **P7.4.5** Boss mechanics (special attacks, phases)
-
-## 7.5 Drop System (SOUL.md)
-
-- [ ] **P7.5.1** Drop table structure
-- [ ] **P7.5.2** Common/uncommon/rare tiers
-- [ ] **P7.5.3** **Stackable Loot Boxes** - monsters drop boxes, not items
-- [ ] **P7.5.4** Loot box opening interface
-- [ ] **P7.5.5** **Rare drop choice** - pet OR item, player decides
-- [ ] **P7.5.6** Pet system (soulbound, permanent)
-- [ ] **P7.5.7** Already have pet? Auto-receive item
-- [ ] **P7.5.8** **PvM drops unique items, NOT skilling resources**
+### 4.3 Combat Minigames
+- [ ] Training arena (practice combat mechanics)
+- [ ] Wave defense (protect NPCs)
+- [ ] Boss rush (previously beaten bosses, cosmetic rewards)
 
 ---
 
-# PHASE 8: AI COMPANIONS (SOUL.md)
+## Milestone 5: PvP
+> "Fair, skilled, consequence-free competition"
 
-## 8.1 Companion Core
+### 5.1 Duel Arena
+- [ ] 1v1 challenge system
+- [ ] Equal stakes or no stakes
+- [ ] Skill-based (no RNG, read-and-react at 140 BPM)
 
-- [ ] **P8.1.1** Companion entity system
-- [ ] **P8.1.2** **Locked to account forever** - cannot be changed
-- [ ] **P8.1.3** Companion follows player
-- [ ] **P8.1.4** Companion appearance customization (initial)
-- [ ] **P8.1.5** Companion naming
+### 5.2 Wilderness / Open PvP
+- [ ] Designated PvP zones
+- [ ] Lose NOTHING on death (risk = time, not items)
+- [ ] Territory control (clans)
 
-## 8.2 Companion Abilities
+### 5.3 Clan Wars
+- [ ] Organized clan vs clan
+- [ ] Normalized stats
+- [ ] War declaration, arenas
 
-- [ ] **P8.2.1** Gathering assistance (woodcutting, mining, fishing)
-- [ ] **P8.2.2** Inventory management help
-- [ ] **P8.2.3** **NOT usable in dangerous content**
-- [ ] **P8.2.4** Skill-based efficiency (levels up with you)
-- [ ] **P8.2.5** **Can trade with companion** (inventory exchange)
-
-## 8.3 Companion Personality
-
-- [ ] **P8.3.1** Personality traits system
-- [ ] **P8.3.2** Companion dialogue/reactions
-- [ ] **P8.3.3** Grows with player over time
-- [ ] **P8.3.4** Memories of adventures
-
-## 8.4 Companion Cosmetics
-
-- [ ] **P8.4.1** Companion skins (purchasable with gold)
-- [ ] **P8.4.2** Companion accessories
-- [ ] **P8.4.3** Companion animations
+### 5.4 PvP Matchmaking
+- [ ] Tier-based matching
+- [ ] ELO/rating system
+- [ ] Ranked seasons, leaderboards
 
 ---
 
-# PHASE 9: CLANS (SOUL.md)
+## Milestone 6: Music & Audio
+> "140 BPM drives everything — the game has a groove"
 
-## 9.1 Clan Core
+### 6.1 Music System
+- [ ] All tracks at 140 BPM (synced to game tick)
+- [ ] 8-bar block structure
+- [ ] Zone-specific tracks
+- [ ] Seamless zone transitions
+- [ ] Boss fight music = fight structure
 
-- [ ] **P9.1.1** Clan creation
-- [ ] **P9.1.2** Clan name/tag
-- [ ] **P9.1.3** Clan ranks/permissions
-- [ ] **P9.1.4** Invite/kick members
-- [ ] **P9.1.5** Clan chat channel
-- [ ] **P9.1.6** Clan list UI
+### 6.2 Sound Effects
+- [ ] Combat, skilling, UI, ambient, dialogue sounds
 
-## 9.2 Clan Strongholds
-
-- [ ] **P9.2.1** Stronghold location claiming
-- [ ] **P9.2.2** **Gold burns into PERMANENT upgrades** (cannot withdraw)
-- [ ] **P9.2.3** Building construction (forge, altar, portal)
-- [ ] **P9.2.4** Upgrade tiers
-- [ ] **P9.2.5** **XP boosts from upgraded buildings**
-- [ ] **P9.2.6** **Damage boosts on monsters**
-- [ ] **P9.2.7** Stronghold visuals (grows over time)
-- [ ] **P9.2.8** **Benefits only while IN clan**
-
-## 9.3 Clan Loyalty System (SOUL.md)
-
-- [ ] **P9.3.1** **PUBLIC clan history** per player
-- [ ] **P9.3.2** Track: clans joined, time stayed, left vs kicked
-- [ ] **P9.3.3** **History follows forever**
-- [ ] **P9.3.4** Visual loyalty indicators
-- [ ] **P9.3.5** New member limitations (earn trust over time)
-- [ ] **P9.3.6** Long-term member benefits
-
-## 9.4 Territory Control
-
-- [ ] **P9.4.1** Wilderness zone ownership
-- [ ] **P9.4.2** Territory claiming mechanics
-- [ ] **P9.4.3** Territory benefits (exclusive resources)
-- [ ] **P9.4.4** Territory wars
-- [ ] **P9.4.5** Territory map UI
+### 6.3 Audio Production
+- [ ] Suno/SOUNDRAW for generation
+- [ ] DAW arrangement
+- [ ] AI music fits human-AI theme
 
 ---
 
-# PHASE 10: QUESTS
+## Milestone 7: Infrastructure
+> "Ready for real players"
 
-## 10.1 Quest System
+### 7.1 Database
+- [ ] PostgreSQL production
+- [ ] Full persistence (players, world, quests, clans)
+- [ ] Migration system
 
-- [ ] **P10.1.1** Quest definition format
-- [ ] **P10.1.2** Quest stages/progress
-- [ ] **P10.1.3** Quest requirements (skills, items, other quests)
-- [ ] **P10.1.4** Quest journal UI
-- [ ] **P10.1.5** Quest rewards
-- [ ] **P10.1.6** Quest points
+### 7.2 Security
+- [ ] Secure auth, rate limiting, anti-cheat
+- [ ] Input validation, DDoS protection
 
-## 10.2 Quest Scripting
+### 7.3 Hosting & Scaling
+- [ ] Cloud hosting, load balancing
+- [ ] WebSocket scaling, CDN
+- [ ] Monitoring and alerting
 
-- [ ] **P10.2.1** Quest scripting language/system
-- [ ] **P10.2.2** Cutscenes
-- [ ] **P10.2.3** Quest-specific instances
-- [ ] **P10.2.4** Quest NPCs/objects
-- [ ] **P10.2.5** Quest items
+### 7.4 CI/CD
+- [ ] Build pipeline, automated testing
+- [ ] Staging + production environments
 
-## 10.3 Initial Quests
-
-- [ ] **P10.3.1** Tutorial quest
-- [ ] **P10.3.2** 5-10 starter quests
-- [ ] **P10.3.3** Quest testing framework
-
----
-
-# PHASE 11: SOCIAL SYSTEMS
-
-## 11.1 Chat System
-
-- [ ] **P11.1.1** Public chat
-- [ ] **P11.1.2** Private messages
-- [ ] **P11.1.3** Clan chat
-- [ ] **P11.1.4** **X.com level freedom of speech**
-- [ ] **P11.1.5** **No links allowed** (safety)
-- [ ] **P11.1.6** Chat history
-- [ ] **P11.1.7** Chat filtering (optional client-side)
-
-## 11.2 Friends System
-
-- [ ] **P11.2.1** Friends list
-- [ ] **P11.2.2** Add/remove friends
-- [ ] **P11.2.3** Online status
-- [ ] **P11.2.4** Ignore list
-
-## 11.3 Discord Integration (SOUL.md)
-
-- [ ] **P11.3.1** Link Discord account
-- [ ] **P11.3.2** Add players to Discord from game
-- [ ] **P11.3.3** Discord VC support for clans/parties
-- [ ] **P11.3.4** Discord activity status
+### 7.5 Wiki
+- [ ] MediaWiki self-hosted
+- [ ] Auto-generate pages from game data
+- [ ] Dev docs + player wiki simultaneously
 
 ---
 
-# PHASE 12: JUSTICE SYSTEM (SOUL.md)
+## Milestone 8: Polish & Beta
+> "Ship it — everything tightened up"
 
-## 12.1 Exile System
+### 8.1 Visual Polish
+- [ ] Ground textures (PBR tileable) + shader blending
+- [ ] Model LOD, instanced rendering
+- [ ] Character models, NPC models (replace placeholder boxes)
+- [ ] Equipment visuals on character
+- [ ] Animation system (walk, run, attack, idle, death)
 
-- [ ] **P12.1.1** Exile status flag
-- [ ] **P12.1.2** **Can still log in and play**
-- [ ] **P12.1.3** **Cannot trade**
-- [ ] **P12.1.4** **Cannot speak**
-- [ ] **P12.1.5** **Cannot join clans**
-- [ ] **P12.1.6** Visual exile indicator
-- [ ] **P12.1.7** Exile duration (temporary vs permanent)
+### 8.2 UI Polish
+- [ ] Full UI skin (consistent theme)
+- [ ] Minimap, world map
+- [ ] Settings menu (graphics, audio, keybinds)
+- [ ] Responsive design
 
-## 12.2 Player Tribunal
+### 8.3 Performance
+- [ ] Frustum culling, texture atlasing, draw call batching
+- [ ] Network optimization (delta compression, binary protocol)
+- [ ] Memory management
+- [ ] Load testing (100+ players)
 
-- [ ] **P12.2.1** Report system
-- [ ] **P12.2.2** Evidence collection
-- [ ] **P12.2.3** Tribunal case queue
-- [ ] **P12.2.4** Community voting interface
-- [ ] **P12.2.5** Verdict execution
-- [ ] **P12.2.6** **Public trial records**
-- [ ] **P12.2.7** **False accusation consequences**
-- [ ] **P12.2.8** Tribunal eligibility requirements
+### 8.4 RWT Marketplace
+- [ ] Player-to-player cosmetic trading
+- [ ] 10% seller fee (gold sink)
+- [ ] Transaction history, fraud prevention
 
----
+### 8.5 Justice System
+- [ ] Player reporting, tribunal, exile, appeals
 
-# PHASE 13: RARES SYSTEM (SOUL.md)
+### 8.6 Rares & Events
+- [ ] Rare drops, holiday events
+- [ ] Limited-time cosmetics
+- [ ] Item lending, rental market
 
-## 13.1 Rare Drops
-
-- [ ] **P13.1.1** Rare item definitions
-- [ ] **P13.1.2** **Surprise drop system** - no advance announcement
-- [ ] **P13.1.3** Event scheduling (hidden from players)
-- [ ] **P13.1.4** **24-hour window max**
-- [ ] **P13.1.5** Drop to all online players at moment
-- [ ] **P13.1.6** **Miss it = miss it forever**
-
-## 13.2 Rare Trading
-
-- [ ] **P13.2.1** Rares tradeable on GE
-- [ ] **P13.2.2** Rares tradeable for gold
-- [ ] **P13.2.3** Price tracking
-- [ ] **P13.2.4** **Free market chaos** - monopolies allowed
-
----
-
-# PHASE 14: EVENTS & CONTENT
-
-## 14.1 Holiday Events (SOUL.md)
-
-- [ ] **P14.1.1** Event framework
-- [ ] **P14.1.2** Easter event
-- [ ] **P14.1.3** 4th of July event
-- [ ] **P14.1.4** Halloween event
-- [ ] **P14.1.5** Thanksgiving event
-- [ ] **P14.1.6** Christmas event
-- [ ] **P14.1.7** Holiday rewards (cosmetics)
-
-## 14.2 Feast Days (SOUL.md)
-
-- [ ] **P14.2.1** Feast day calendar
-- [ ] **P14.2.2** Subtle reminders (on by default)
-- [ ] **P14.2.3** Opt-out setting
-- [ ] **P14.2.4** Small visual nods
-
-## 14.3 Weekly Rosary (SOUL.md - Discord)
-
-- [ ] **P14.3.1** Discord event scheduling
-- [ ] **P14.3.2** Participation tracking
-- [ ] **P14.3.3** **Spiritual Currency** reward
-- [ ] **P14.3.4** Cannot be bought, only earned
-- [ ] **P14.3.5** Spiritual Currency shop (wings, halos, holy cosmetics)
-
-## 14.4 Whip Tournaments (SOUL.md)
-
-- [ ] **P14.4.1** **Funded by burned fees** (15% lending fees, etc.)
-- [ ] **P14.4.2** **Free entry** (not gambling)
-- [ ] **P14.4.3** RNG whip fights
-- [ ] **P14.4.4** Bracket system
-- [ ] **P14.4.5** **Everyone wins something**
-- [ ] **P14.4.6** Top placers win biggest shares
-
----
-
-# PHASE 15: UI & POLISH
-
-## 15.1 Game UI
-
-- [ ] **P15.1.1** Main game interface layout
-- [ ] **P15.1.2** Minimap
-- [ ] **P15.1.3** Chat box
-- [ ] **P15.1.4** Inventory panel
-- [ ] **P15.1.5** Equipment panel
-- [ ] **P15.1.6** Stats panel
-- [ ] **P15.1.7** Prayer panel
-- [ ] **P15.1.8** Magic panel
-- [ ] **P15.1.9** Settings panel
-- [ ] **P15.1.10** Quest panel
-- [ ] **P15.1.11** Clan panel
-- [ ] **P15.1.12** Friends panel
-
-## 15.2 Login/Menu UI
-
-- [ ] **P15.2.1** Title screen
-- [ ] **P15.2.2** Login screen
-- [ ] **P15.2.3** Character creation
-- [ ] **P15.2.4** World selection
-- [ ] **P15.2.5** Settings menu
-
-## 15.3 Audio
-
-- [ ] **P15.3.1** Audio system setup
-- [ ] **P15.3.2** Sound effects
-- [ ] **P15.3.3** Music system
-- [ ] **P15.3.4** Ambient sounds
-- [ ] **P15.3.5** Volume controls
-
-## 15.4 Visual Polish
-
-- [ ] **P15.4.1** Particle effects
-- [ ] **P15.4.2** Combat effects
-- [ ] **P15.4.3** Spell effects
-- [ ] **P15.4.4** Weather system
-- [ ] **P15.4.5** Day/night cycle
-- [ ] **P15.4.6** Lighting improvements
-
----
-
-# PHASE 16: INFRASTRUCTURE
-
-## 16.1 Database
-
-- [ ] **P16.1.1** Production database (Postgres)
-- [ ] **P16.1.2** Database schema design
-- [ ] **P16.1.3** Migrations system
-- [ ] **P16.1.4** Backup system
-- [ ] **P16.1.5** Data integrity checks
-
-## 16.2 Deployment
-
-- [ ] **P16.2.1** Server hosting setup
-- [ ] **P16.2.2** CI/CD pipeline
-- [ ] **P16.2.3** Domain/SSL
-- [ ] **P16.2.4** Load balancing
-- [ ] **P16.2.5** Multiple world servers
-
-## 16.3 Security
-
-- [ ] **P16.3.1** Anti-cheat system
-- [ ] **P16.3.2** Rate limiting
-- [ ] **P16.3.3** Input validation
-- [ ] **P16.3.4** SQL injection prevention
-- [ ] **P16.3.5** XSS prevention
-- [ ] **P16.3.6** DDoS protection
-
-## 16.4 Monitoring
-
-- [ ] **P16.4.1** Server metrics
-- [ ] **P16.4.2** Error tracking
-- [ ] **P16.4.3** Player analytics
-- [ ] **P16.4.4** Economy monitoring
-- [ ] **P16.4.5** Alerting system
-
----
-
-# CONTENT PHASES (Post-Launch)
-
-## Content Phase A: Starting Area
-
-- [ ] Complete starting town
-- [ ] 10 unique NPCs
-- [ ] 5 starter quests
-- [ ] Beginner monsters (levels 1-20)
-- [ ] Basic resources
-
-## Content Phase B: Expansion Areas
-
-- [ ] Second region
-- [ ] Third region
-- [ ] Mid-level content (20-50)
-- [ ] New skills content
-
-## Content Phase C: Endgame
-
-- [ ] High-level areas
-- [ ] Bosses
-- [ ] Raids
-- [ ] Endgame gear
-
----
-
-# SUMMARY
-
-| Phase | Tasks | Focus |
-|-------|-------|-------|
-| 0 | ~25 | Foundation |
-| 1 | ~30 | Core Gameplay |
-| 2 | ~45 | Player Systems |
-| 3 | ~35 | Economy |
-| 4 | ~35 | Combat |
-| 5 | ~25 | PvP |
-| 6 | ~50 | Skills |
-| 7 | ~25 | NPCs/Monsters |
-| 8 | ~20 | AI Companions |
-| 9 | ~25 | Clans |
-| 10 | ~15 | Quests |
-| 11 | ~15 | Social |
-| 12 | ~15 | Justice |
-| 13 | ~10 | Rares |
-| 14 | ~15 | Events |
-| 15 | ~30 | UI/Polish |
-| 16 | ~20 | Infrastructure |
-| **TOTAL** | **~435** | |
-
----
-
-*This is your roadmap. Every SOUL.md feature is in here.*
+### 8.7 Beta Launch
+- [ ] Stress testing, bug bounty
+- [ ] Community feedback
+- [ ] Marketing, YouTube content pipeline

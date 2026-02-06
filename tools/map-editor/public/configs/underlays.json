@@ -1,0 +1,12 @@
+[
+  { "id": 1, "name": "Grass Light", "color": "#4A8A3A" },
+  { "id": 2, "name": "Grass Dark", "color": "#3A7A2A" },
+  { "id": 3, "name": "Grass Lush", "color": "#5A9A4A" },
+  { "id": 4, "name": "Dirt", "color": "#8A7050" },
+  { "id": 5, "name": "Dirt Dark", "color": "#6A5040" },
+  { "id": 6, "name": "Sand", "color": "#C8B870" },
+  { "id": 7, "name": "Sand Wet", "color": "#A09060" },
+  { "id": 8, "name": "Snow", "color": "#E8E8F0" },
+  { "id": 9, "name": "Mud", "color": "#5A4830" },
+  { "id": 10, "name": "Swamp", "color": "#3A5830" }
+]

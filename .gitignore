@@ -13,10 +13,18 @@ client_secrets.json
 __pycache__/
 *.pyc
 
-# Recordings - video files too large for git
-recordings/horizontal/
-recordings/shorts/
-recordings/voiceovers/
+# Recordings (too large for git)
+recordings/
 
 # VTuber model files (large)
 vtuber/wizard/
+
+# Editor/IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Temp files
+tmp_*
+*.local
+screenshots/

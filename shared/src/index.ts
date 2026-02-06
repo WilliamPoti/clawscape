@@ -1,8 +1,11 @@
-// Future Buddy Shared Types & Constants
+// ClawScape Shared Types & Constants
 
-// Re-export map system
+// Re-export map system (legacy demo map)
 export * from './map.js';
 export * from './demoMap.js';
+
+// Asset format definitions
+export * from './formats.js';
 
 // Game constants
 export const TICK_RATE = 600; // ms per game tick (RS standard)

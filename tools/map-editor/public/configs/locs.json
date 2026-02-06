@@ -1,0 +1,14 @@
+[
+  { "id": 1, "name": "Normal Tree", "model": "models/tree_normal.glb", "sizeX": 1, "sizeY": 1, "blocksMovement": true, "interaction": ["Chop down"] },
+  { "id": 2, "name": "Oak Tree", "model": "models/tree_oak.glb", "sizeX": 2, "sizeY": 2, "blocksMovement": true, "interaction": ["Chop down"] },
+  { "id": 3, "name": "Rock", "model": "models/rock.glb", "sizeX": 1, "sizeY": 1, "blocksMovement": true, "interaction": ["Mine"] },
+  { "id": 4, "name": "Bush", "model": "models/bush.glb", "sizeX": 1, "sizeY": 1, "blocksMovement": false },
+  { "id": 5, "name": "Fence", "model": "models/fence.glb", "sizeX": 1, "sizeY": 1, "blocksMovement": true },
+  { "id": 6, "name": "Sign Post", "model": "models/sign.glb", "sizeX": 1, "sizeY": 1, "blocksMovement": false, "interaction": ["Read"] },
+  { "id": 7, "name": "Torch", "model": "models/torch.glb", "sizeX": 1, "sizeY": 1, "blocksMovement": false },
+  { "id": 8, "name": "Crate", "model": "models/crate.glb", "sizeX": 1, "sizeY": 1, "blocksMovement": true, "interaction": ["Search"] },
+  { "id": 9, "name": "Anvil", "model": "models/anvil.glb", "sizeX": 1, "sizeY": 1, "blocksMovement": true, "interaction": ["Smith"] },
+  { "id": 10, "name": "Furnace", "model": "models/furnace.glb", "sizeX": 2, "sizeY": 2, "blocksMovement": true, "interaction": ["Smelt"] },
+  { "id": 11, "name": "Bank Booth", "model": "models/bank_booth.glb", "sizeX": 1, "sizeY": 1, "blocksMovement": true, "interaction": ["Use"] },
+  { "id": 12, "name": "Door (Closed)", "model": "models/door_closed.glb", "sizeX": 1, "sizeY": 1, "blocksMovement": true, "interaction": ["Open"] }
+]

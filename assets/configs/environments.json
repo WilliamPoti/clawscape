@@ -1,0 +1,56 @@
+[
+  {
+    "id": "overworld_day",
+    "name": "Overworld - Day",
+    "sunDirection": [-0.5, -0.8, -0.3],
+    "sunColor": "#FFEEDD",
+    "sunIntensity": 1.2,
+    "ambientColor": "#6688AA",
+    "ambientIntensity": 0.4,
+    "fogColor": "#C8D8E8",
+    "fogDensity": 0.0003,
+    "sky": "#87CEEB",
+    "shadowResolution": 2048,
+    "shadowDistance": 4000
+  },
+  {
+    "id": "overworld_dusk",
+    "name": "Overworld - Dusk",
+    "sunDirection": [-0.8, -0.3, -0.2],
+    "sunColor": "#FF8844",
+    "sunIntensity": 0.8,
+    "ambientColor": "#443366",
+    "ambientIntensity": 0.3,
+    "fogColor": "#664433",
+    "fogDensity": 0.0004,
+    "sky": "#332244",
+    "shadowResolution": 2048,
+    "shadowDistance": 3000
+  },
+  {
+    "id": "cave",
+    "name": "Cave Interior",
+    "sunDirection": [0, -1, 0],
+    "sunColor": "#000000",
+    "sunIntensity": 0.0,
+    "ambientColor": "#222233",
+    "ambientIntensity": 0.15,
+    "fogColor": "#111122",
+    "fogDensity": 0.002,
+    "sky": "#000000",
+    "shadowResolution": 1024,
+    "shadowDistance": 1000
+  },
+  {
+    "id": "swamp",
+    "name": "Swamp",
+    "sunDirection": [-0.4, -0.6, -0.3],
+    "sunColor": "#AABB88",
+    "sunIntensity": 0.6,
+    "ambientColor": "#334422",
+    "ambientIntensity": 0.35,
+    "fogColor": "#334422",
+    "fogDensity": 0.001,
+    "sky": "#556644"
+  }
+]
